@@ -3,9 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
+enum MapMode { normal, selecting }
+
 class MapController extends GetxController {
   final RxnString mapboxToken = RxnString();
   MapboxMap? mapboxMap;
+  
+  // Location selection
+  var mapMode = MapMode.normal.obs;
+  var isAddButtonVisible = true.obs;
 
   @override
   void onInit() {
@@ -33,5 +39,31 @@ class MapController extends GetxController {
   void onMapCreated(MapboxMap map) {
     mapboxMap = map;
     debugPrint("✅ Mapbox map created");
+  }
+
+  void startLocationSelection() {
+    mapMode.value = MapMode.selecting;
+    isAddButtonVisible.value = false;
+  }
+
+  void cancelLocationSelection() {
+    mapMode.value = MapMode.normal;
+    isAddButtonVisible.value = true;
+  }
+
+  void confirmLocationSelection() {
+    // Just show success message and reset UI
+    Get.snackbar(
+      'Đang thêm vị trí!',
+      'Vị trí đã được thêm thành công.',
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.BOTTOM,
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 2),
+    );
+    
+    // Reset to normal mode
+    cancelLocationSelection();
   }
 }
