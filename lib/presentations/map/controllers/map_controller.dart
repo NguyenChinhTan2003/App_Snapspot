@@ -7,8 +7,10 @@ enum MapMode { normal, selecting }
 
 class MapController extends GetxController {
   final RxnString mapboxToken = RxnString();
+  final selectedCoordinates = Rxn<Point>();
+
   MapboxMap? mapboxMap;
-  
+
   // Location selection
   var mapMode = MapMode.normal.obs;
   var isAddButtonVisible = true.obs;
@@ -51,19 +53,26 @@ class MapController extends GetxController {
     isAddButtonVisible.value = true;
   }
 
-  void confirmLocationSelection() {
-    // Just show success message and reset UI
-    Get.snackbar(
-      'Đang thêm vị trí!',
-      'Vị trí đã được thêm thành công.',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-      margin: const EdgeInsets.all(16),
-      duration: const Duration(seconds: 2),
-    );
-    
-    // Reset to normal mode
-    cancelLocationSelection();
+  void confirmLocationSelection() async {
+    try {
+      final cameraState = await mapboxMap?.getCameraState();
+      if (cameraState != null) {
+        // Lấy center point
+        final center = cameraState.center;
+        selectedCoordinates.value = center;
+        debugPrint(
+            "✅ Center coordinates: ${center.coordinates.lat}, ${center.coordinates.lng}");
+
+        // Điều hướng sang CheckinPage
+        Get.toNamed('/checkin', arguments: {
+          'coordinates': center,
+        });
+
+        // Reset UI
+        cancelLocationSelection();
+      }
+    } catch (e) {
+      debugPrint("❌ Error getting coordinates: $e");
+    }
   }
 }
