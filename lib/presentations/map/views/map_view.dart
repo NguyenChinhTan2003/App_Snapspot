@@ -33,7 +33,8 @@ class MapPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBody(NavigationController navController, MapController mapController) {
+  Widget _buildBody(
+      NavigationController navController, MapController mapController) {
     switch (navController.selectedIndex.value) {
       case 0:
         return _buildMapView(mapController);
@@ -80,13 +81,17 @@ class MapPage extends StatelessWidget {
             key: const ValueKey("mapWidget"),
             onMapCreated: mapController.onMapCreated,
             cameraOptions: CameraOptions(
-              center: Point(
-                coordinates: Position(106.660172, 10.762622),
-              ),
+              center: mapController.currentLocation.value ??
+                  Point(
+                    coordinates: Position(106.660172, 10.762622),
+                  ),
               zoom: 14.0,
             ),
           ),
-           // Crosshair for location selection
+
+         
+
+          // Crosshair for location selection
           if (mapController.mapMode.value == MapMode.selecting)
             const Positioned.fill(
               child: CustomCrosshair(),
@@ -137,7 +142,8 @@ class MapPage extends StatelessWidget {
                     foregroundColor: Colors.green,
                     heroTag: "currentLocation",
                     onPressed: () {
-                      // Add current location functionality
+                      mapController.goToCurrentLocation();
+                      mapController.isCompassVisible.value = true; // Hiển thị la bàn khi đến vị trí hiện tại
                     },
                     child: const Icon(Icons.my_location),
                   ),

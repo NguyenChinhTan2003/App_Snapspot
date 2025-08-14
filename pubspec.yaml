@@ -35,7 +35,9 @@ dependencies:
   image_picker: ^1.1.2
   mapbox_maps_flutter: ^2.9.0
   permission_handler: ^12.0.1
-  
+  geolocator: ^13.0.3
+  geolocator_android: ^4.6.1
+  flutter_compass: ^0.8.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
