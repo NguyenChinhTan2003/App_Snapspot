@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1054104127433",
+    "project_id": "snapspot-c9ace",
+    "storage_bucket": "snapspot-c9ace.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1054104127433:android:5d8ec84e04b07a2981ca18",
+        "android_client_info": {
+          "package_name": "com.example.app_snapspot"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDO5QZ0uVKGWeYHN71XyMbbRwzGxe2uRf0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
