@@ -1,57 +1,17 @@
-import 'package:app_snapspot/core/common_widgets/custom_bottom_nav.dart';
 import 'package:app_snapspot/core/common_widgets/custom_crosshair.dart';
 import 'package:app_snapspot/presentations/map/controllers/map_controller.dart';
-import 'package:app_snapspot/presentations/map/controllers/navigation_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
-class MapPage extends StatelessWidget {
+class MapPage extends GetView<MapController> {
+  
   const MapPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final mapController = Get.put(MapController());
-    final navController = Get.put(NavigationController());
-
-    return Scaffold(
-      extendBody: true, // Để bottom nav có thể overlap với body
-      appBar: AppBar(
-        title: const Text(
-          "App SnapSpot",
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.green,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: Obx(() => _buildBody(navController, mapController)),
-      bottomNavigationBar: CustomBottomNav(),
-    );
-  }
-
-  Widget _buildBody(
-      NavigationController navController, MapController mapController) {
-    switch (navController.selectedIndex.value) {
-      case 0:
-        return _buildMapView(mapController);
-      case 1:
-        return _buildCameraView();
-      case 2:
-        return _buildGalleryView();
-      case 3:
-        return _buildProfileView();
-      default:
-        return _buildMapView(mapController);
-    }
-  }
-
-  Widget _buildMapView(MapController mapController) {
     return Obx(() {
-      final token = mapController.mapboxToken.value;
+      final token = controller.mapboxToken.value;
 
       if (token == null) {
         return const Center(
@@ -79,9 +39,9 @@ class MapPage extends StatelessWidget {
         children: [
           MapWidget(
             key: const ValueKey("mapWidget"),
-            onMapCreated: mapController.onMapCreated,
+            onMapCreated: controller.onMapCreated,
             cameraOptions: CameraOptions(
-              center: mapController.currentLocation.value ??
+              center: controller.currentLocation.value ??
                   Point(
                     coordinates: Position(106.660172, 10.762622),
                   ),
@@ -89,16 +49,14 @@ class MapPage extends StatelessWidget {
             ),
           ),
 
-         
-
-          // Crosshair for location selection
-          if (mapController.mapMode.value == MapMode.selecting)
+          // Crosshair khi chọn vị trí
+          if (controller.mapMode.value == MapMode.selecting)
             const Positioned.fill(
               child: CustomCrosshair(),
             ),
 
-          // Selection instructions
-          if (mapController.mapMode.value == MapMode.selecting)
+          // Hướng dẫn chọn vị trí
+          if (controller.mapMode.value == MapMode.selecting)
             Positioned(
               top: 20,
               left: 20,
@@ -128,40 +86,38 @@ class MapPage extends StatelessWidget {
               ),
             ),
 
-          // Add Location Button
-          if (mapController.isAddButtonVisible.value)
+          // Nút chức năng
+          if (controller.isAddButtonVisible.value)
             Positioned(
               right: 16,
               bottom: 120,
               child: Column(
                 children: [
-                  // Current location button
                   FloatingActionButton(
                     mini: true,
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.green,
                     heroTag: "currentLocation",
                     onPressed: () {
-                      mapController.goToCurrentLocation();
-                      mapController.isCompassVisible.value = true; // Hiển thị la bàn khi đến vị trí hiện tại
+                      controller.goToCurrentLocation();
+                      controller.isCompassVisible.value = true;
                     },
                     child: const Icon(Icons.my_location),
                   ),
                   const SizedBox(height: 12),
-                  // Add location button
                   FloatingActionButton(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.green,
                     heroTag: "addLocation",
-                    onPressed: mapController.startLocationSelection,
+                    onPressed: controller.startLocationSelection,
                     child: const Icon(Icons.add_location, size: 28),
                   ),
                 ],
               ),
             ),
 
-          // Confirm/Cancel buttons for selection mode
-          if (mapController.mapMode.value == MapMode.selecting)
+          // Nút confirm/cancel khi chọn vị trí
+          if (controller.mapMode.value == MapMode.selecting)
             Positioned(
               bottom: 120,
               left: 20,
@@ -170,7 +126,7 @@ class MapPage extends StatelessWidget {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: mapController.cancelLocationSelection,
+                      onPressed: controller.cancelLocationSelection,
                       icon: const Icon(Icons.close),
                       label: const Text('Hủy bỏ'),
                       style: ElevatedButton.styleFrom(
@@ -186,7 +142,7 @@ class MapPage extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: mapController.confirmLocationSelection,
+                      onPressed: controller.confirmLocationSelection,
                       icon: const Icon(Icons.check),
                       label: const Text('Xác nhận'),
                       style: ElevatedButton.styleFrom(
@@ -205,105 +161,5 @@ class MapPage extends StatelessWidget {
         ],
       );
     });
-  }
-
-  Widget _buildCameraView() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.add_location_alt,
-            size: 80,
-            color: Colors.green,
-          ),
-          SizedBox(height: 20),
-          Text(
-            'Location',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          SizedBox(height: 12),
-          Text(
-            'Đăng ảnh và vibe của bạn!',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGalleryView() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.history_edu,
-            size: 80,
-            color: Colors.green,
-          ),
-          SizedBox(height: 20),
-          Text(
-            'History',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          SizedBox(height: 12),
-          Text(
-            'Danh sách các địa điểm đã đến',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileView() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundColor: Colors.green,
-            child: Icon(
-              Icons.person,
-              size: 60,
-              color: Colors.white,
-            ),
-          ),
-          SizedBox(height: 20),
-          Text(
-            'Profile',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          SizedBox(height: 12),
-          Text(
-            'Quản lý thông tin cá nhân của bạn',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
