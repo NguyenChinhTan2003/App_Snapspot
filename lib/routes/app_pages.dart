@@ -2,7 +2,9 @@
 
 
 import 'package:app_snapspot/presentations/auth/bindings/auth_binding.dart';
-import 'package:app_snapspot/presentations/auth/views/profile_view.dart';
+import 'package:app_snapspot/presentations/auth/views/login_view.dart';
+import 'package:app_snapspot/presentations/profile/bindings/profile_binding.dart';
+import 'package:app_snapspot/presentations/profile/views/profile_view.dart';
 import 'package:app_snapspot/presentations/checkin/bindings/checkin_binding.dart';
 import 'package:app_snapspot/presentations/checkin/views/checkin_view.dart';
 import 'package:app_snapspot/presentations/home/bindings/home_binding.dart';
@@ -36,8 +38,12 @@ class AppPages {
     GetPage(
       name: Routes.PROFILE,
       page: () => const ProfileView(),
+      binding: ProfileBinding(),
+    ),
+    GetPage(
+      name: Routes.LOGIN,
+      page: () => const LoginView(),
       binding: AuthBinding(),
     ),
- 
   ];
 }

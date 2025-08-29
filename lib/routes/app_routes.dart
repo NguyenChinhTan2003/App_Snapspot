@@ -8,10 +8,12 @@ abstract class Routes {
   static const MAP = _Paths.MAP;
   static const CHECKIN = _Paths.CHECKIN;
   static const PROFILE = _Paths.PROFILE;
+  static const LOGIN = _Paths.LOGIN;
 }
 
 abstract class _Paths {
   _Paths._();
+  static const LOGIN = '/login';
   static const HOME = '/home';
   static const MAP = '/map';
   static const CHECKIN = '/checkin';

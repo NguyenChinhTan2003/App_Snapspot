@@ -1,6 +1,6 @@
 import 'package:app_snapspot/core/common_widgets/custom_bottom_nav.dart';
 import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
-import 'package:app_snapspot/presentations/auth/views/profile_view.dart';
+import 'package:app_snapspot/presentations/profile/views/profile_view.dart';
 import 'package:app_snapspot/presentations/home/controllers/navigation_controller.dart';
 import 'package:app_snapspot/presentations/map/views/history_view.dart';
 import 'package:app_snapspot/presentations/map/views/map_view.dart';
