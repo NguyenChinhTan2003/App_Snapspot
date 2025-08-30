@@ -69,7 +69,6 @@ class AuthController extends GetxController {
         await docRef.set({
           "uid": user.uid,
           "email": user.email,
-          "createdAt": FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
       } else {
    

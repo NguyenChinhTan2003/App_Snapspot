@@ -16,7 +16,8 @@ class ProfileController extends GetxController {
 
   // Ưu tiên avatar tùy chỉnh dựa trên isCustomAvatar
   String? get effectivePhotoUrl {
-    if (profile.value?.isCustomAvatar == true && profile.value?.photoUrl != null) {
+    if (profile.value?.isCustomAvatar == true &&
+        profile.value?.photoUrl != null) {
       return profile.value!.photoUrl;
     }
     return _googlePhoto.value;
@@ -38,12 +39,11 @@ class ProfileController extends GetxController {
       final uid = user.uid;
       final email = user.email ?? '';
       final name = user.displayName ?? '------';
-      _googlePhoto.value = user.photoURL; 
+      _googlePhoto.value = user.photoURL;
 
       var data = await _repository.getProfile(uid);
 
       if (data == null) {
-
         final newProfile = ProfileModel(
           uid: uid,
           displayName: name,
@@ -54,17 +54,11 @@ class ProfileController extends GetxController {
         await _repository.saveProfile(newProfile);
         profile.value = newProfile;
       } else {
-       
-        if (data.displayName != name || data.email != email) {
-          final updatedProfile = data.copyWith(
-            displayName: name,
-            email: email,
-          );
-          await _repository.saveProfile(updatedProfile);
-          profile.value = updatedProfile;
-        } else {
-          profile.value = data;
+        if (data.email != email) {
+          await _repository.updateFields(uid, email: email);
+          data = data.copyWith(email: email);
         }
+        profile.value = data;
       }
     } else {
       profile.value = null;
@@ -90,14 +84,12 @@ class ProfileController extends GetxController {
       if (uid != null) {
         final uploadedUrl = await _repository.uploadAvatar(uid, file);
         if (uploadedUrl != null) {
-     
           await _repository.updateFields(
             uid,
             photoUrl: uploadedUrl,
             isCustomAvatar: true,
           );
 
-   
           final current = profile.value;
           if (current != null) {
             profile.value = current.copyWith(
@@ -113,20 +105,41 @@ class ProfileController extends GetxController {
   }
 
   Future<void> updateDisplayName(String newName) async {
-  final uid = Get.find<AuthController>().firebaseUser.value?.uid;
-  if (uid == null) return;
-  final trimmed = newName.trim();
-  if (trimmed.isEmpty) return;
+    final uid = Get.find<AuthController>().firebaseUser.value?.uid;
+    if (uid == null) return;
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty) return;
 
-  await _repository.updateFields(
-    uid,
-    displayName: trimmed,
-  );
+    await _repository.updateFields(
+      uid,
+      displayName: trimmed,
+    );
 
-  final current = profile.value;
-  if (current != null) {
-    profile.value = current.copyWith(displayName: trimmed);
+    final current = profile.value;
+    if (current != null) {
+      profile.value = current.copyWith(displayName: trimmed);
+    }
   }
-}
 
+  Future<void> uploadAvatarFromFile(File file) async {
+    final uid = Get.find<AuthController>().firebaseUser.value?.uid;
+    if (uid == null) return;
+
+    final uploadedUrl = await _repository.uploadAvatar(uid, file);
+    if (uploadedUrl != null) {
+      await _repository.updateFields(
+        uid,
+        photoUrl: uploadedUrl,
+        isCustomAvatar: true,
+      );
+
+      final current = profile.value;
+      if (current != null) {
+        profile.value = current.copyWith(
+          photoUrl: uploadedUrl,
+          isCustomAvatar: true,
+        );
+      }
+    }
+  }
 }

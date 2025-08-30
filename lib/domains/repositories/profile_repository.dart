@@ -29,21 +29,17 @@ class ProfileRepository {
         );
   }
 
-  Future<void> updateFields(
-    String uid, {
-    String? displayName,
-    String? photoUrl,
-    bool? isCustomAvatar, 
-  }) async {
-    final update = <String, dynamic>{};
-    if (displayName != null) update['name'] = displayName;
-    if (photoUrl != null) update['photoUrl'] = photoUrl;
-    if (isCustomAvatar != null) update['isCustomAvatar'] = isCustomAvatar;
+  Future<void> updateFields(String uid, {String? displayName, String? email, String? photoUrl, bool? isCustomAvatar}) async {
+  final data = <String, dynamic>{
+    "updatedAt": FieldValue.serverTimestamp(),
+  };
+  if (displayName != null) data["displayName"] = displayName;
+  if (email != null) data["email"] = email;
+  if (photoUrl != null) data["photoUrl"] = photoUrl;
+  if (isCustomAvatar != null) data["isCustomAvatar"] = isCustomAvatar;
 
-    if (update.isNotEmpty) {
-      await _firestore.collection('profiles').doc(uid).update(update);
-    }
-  }
+  await _firestore.collection("profiles").doc(uid).update(data);
+}
 
   Future<String?> uploadAvatar(String uid, File file) async {
     final ref = _storage.ref().child('profiles/$uid/avatar.jpg');
