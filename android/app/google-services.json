@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1054104127433",
+    "project_id": "snapspot-c9ace",
+    "storage_bucket": "snapspot-c9ace.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1054104127433:android:5d8ec84e04b07a2981ca18",
+        "android_client_info": {
+          "package_name": "com.example.app_snapspot"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1054104127433-nvd05pfl8g77guvid88ge7tnhiqe7m46.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.app_snapspot",
+            "certificate_hash": "80c0902579f8ebff8e60588dcdee89134e29e48f"
+          }
+        },
+        {
+          "client_id": "1054104127433-j1tvfls3oko5gqbh0f5ih6qn52ih0hj9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDO5QZ0uVKGWeYHN71XyMbbRwzGxe2uRf0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1054104127433-j1tvfls3oko5gqbh0f5ih6qn52ih0hj9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1054104127433-plfavk5p95hpl1ass5jkr9bqhhmafeoh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.appSnapspot"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

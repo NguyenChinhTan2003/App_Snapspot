@@ -25,8 +25,8 @@ class MapController extends GetxController {
   void onInit() {
     super.onInit();
     _loadMapboxToken();
-    _listenCompass();
-    goToCurrentLocation();
+    // _listenCompass();
+    
   }
 
   Future<void> _loadMapboxToken() async {
@@ -56,17 +56,18 @@ class MapController extends GetxController {
       puckBearing: PuckBearing.HEADING, // xoay theo hướng
       puckBearingEnabled: true,
   ));
+    goToCurrentLocation();
   }
 
   
 
-  void _listenCompass() {
-    FlutterCompass.events?.listen((event) {
-      if (event.heading != null) {
-        heading.value = event.heading!;
-      }
-    });
-  }
+  // void _listenCompass() {
+  //   FlutterCompass.events?.listen((event) {
+  //     if (event.heading != null) {
+  //       heading.value = event.heading!;
+  //     }
+  //   });
+  // }
 
   Future<void> goToCurrentLocation() async {
     try {

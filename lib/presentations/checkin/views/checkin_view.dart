@@ -2,13 +2,11 @@ import 'package:app_snapspot/presentations/checkin/controllers/checkin_controlle
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class CheckinPage extends StatelessWidget {
-  const CheckinPage({super.key});
+class CheckinView extends GetView<CheckinController> {
+  const CheckinView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(CheckinController());
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
