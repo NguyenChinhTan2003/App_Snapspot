@@ -32,7 +32,7 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.CHECKIN,
-      page: () => const CheckinView(),
+      page: () =>  const CheckinView(),
       binding: CheckinBinding(),
     ),
     GetPage(
