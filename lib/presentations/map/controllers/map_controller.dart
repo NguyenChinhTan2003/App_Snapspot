@@ -21,6 +21,7 @@ class MapController extends GetxController {
 
   MapboxMap? mapboxMap;
 
+  /// cache icon marker theo category để không phải render lại nhiều lần
   final Map<String, Uint8List> _markerCache = {};
 
   // Location selection
@@ -31,7 +32,6 @@ class MapController extends GetxController {
   void onInit() {
     super.onInit();
     _loadMapboxToken();
-    // _listenCompass();
   }
 
   Future<void> _loadMapboxToken() async {
@@ -57,25 +57,22 @@ class MapController extends GetxController {
 
     mapboxMap?.location.updateSettings(LocationComponentSettings(
       enabled: true,
-      pulsingEnabled: true, // hiệu ứng xung nhịp
-      puckBearing: PuckBearing.HEADING, // xoay theo hướng
+      pulsingEnabled: true,
+      puckBearing: PuckBearing.HEADING,
       puckBearingEnabled: true,
     ));
+
     goToCurrentLocation();
 
+    // Load tất cả markers khi map được tạo
+    loadMarkers();
+
+    // Nếu có checkin mới trả về từ màn checkin thì add marker đó
     final args = Get.arguments;
     if (args != null && args is Map<String, dynamic>) {
       addCheckInMarker(args);
     }
   }
-
-  // void _listenCompass() {
-  //   FlutterCompass.events?.listen((event) {
-  //     if (event.heading != null) {
-  //       heading.value = event.heading!;
-  //     }
-  //   });
-  // }
 
   Future<void> goToCurrentLocation() async {
     try {
@@ -99,7 +96,7 @@ class MapController extends GetxController {
       isCompassVisible.value = true;
 
       await mapboxMap?.setCamera(
-        CameraOptions(center: point, zoom: 15.0),
+        CameraOptions(center: point, zoom: 16.0),
       );
     } catch (e) {
       debugPrint("❌ Error getting current location: $e");
@@ -125,15 +122,16 @@ class MapController extends GetxController {
         debugPrint(
             "✅ Center coordinates: ${center.coordinates.lat}, ${center.coordinates.lng}");
 
+        // chuyển sang màn checkin
         final result = await Get.toNamed('/checkin', arguments: {
           'coordinates': center,
         });
 
+        // nếu checkin thành công, thêm marker mới vào map
         if (result != null && result is Map<String, dynamic>) {
           addCheckInMarker(result);
         }
 
-        // Reset UI
         cancelLocationSelection();
       }
     } catch (e) {
@@ -141,6 +139,7 @@ class MapController extends GetxController {
     }
   }
 
+  /// Lấy icon marker có cache
   Future<Uint8List> getMarkerIcon(String icon) async {
     if (_markerCache.containsKey(icon)) {
       return _markerCache[icon]!;
@@ -153,6 +152,7 @@ class MapController extends GetxController {
     return markerBytes;
   }
 
+  /// Load toàn bộ markers từ Firestore
   Future<void> loadMarkers() async {
     if (mapboxMap == null) return;
     try {
@@ -184,6 +184,7 @@ class MapController extends GetxController {
     }
   }
 
+  /// Thêm marker mới ngay sau khi checkin thành công
   Future<void> addCheckInMarker(Map<String, dynamic> checkIn) async {
     if (mapboxMap == null) return;
 
@@ -193,8 +194,7 @@ class MapController extends GetxController {
 
     if (iconUrl == null || iconUrl.isEmpty) return;
 
-    final markerBytes =
-        await CustomMarkerHelper.createGoogleStyleMarker(iconUrl);
+    final markerBytes = await getMarkerIcon(iconUrl);
 
     final manager = await mapboxMap!.annotations.createPointAnnotationManager();
 
@@ -203,5 +203,7 @@ class MapController extends GetxController {
       image: markerBytes,
       iconSize: 1.0,
     ));
+
+    debugPrint("✅ Added new marker: $lat, $lng");
   }
 }

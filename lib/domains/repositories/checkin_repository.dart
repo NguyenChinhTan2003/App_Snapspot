@@ -32,6 +32,26 @@ class CheckInRepository {
     }).toList();
   }
 
+  Future<List<Map<String, dynamic>>> getMarkersInBounds({
+    required double minLat,
+    required double maxLat,
+    required double minLng,
+    required double maxLng,
+  }) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection("checkins")
+        .where("latitude", isGreaterThanOrEqualTo: minLat)
+        .where("latitude", isLessThanOrEqualTo: maxLat)
+        .get();
+        
+    final docs = snapshot.docs.where((doc) {
+      final lng = doc['longitude'] as double;
+      return lng >= minLng && lng <= maxLng;
+    }).toList();
+
+    return docs.map((doc) => doc.data()).toList();
+  }
+
   Future<String> uploadImage(
       String uid, String checkInId, String fileName, Uint8List fileData) async {
     final ref = _storage.ref().child('checkins/$uid/$checkInId/$fileName');
