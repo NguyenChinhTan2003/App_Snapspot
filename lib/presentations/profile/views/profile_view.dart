@@ -59,7 +59,8 @@ class ProfileView extends StatelessWidget {
                             child: Container(
                               decoration: const BoxDecoration(
                                 image: DecorationImage(
-                                  image: NetworkImage('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800'),
+                                  image: NetworkImage(
+                                      'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800'),
                                   fit: BoxFit.cover,
                                 ),
                               ),
@@ -95,10 +96,13 @@ class ProfileView extends StatelessWidget {
                                     child: CircleAvatar(
                                       radius: 65,
                                       backgroundColor: Colors.grey[300],
-                                      backgroundImage: (effectivePhoto != null && effectivePhoto.isNotEmpty)
-                                          ? NetworkImage(effectivePhoto)
-                                          : null,
-                                      child: (effectivePhoto == null || effectivePhoto.isEmpty)
+                                      backgroundImage:
+                                          (effectivePhoto != null &&
+                                                  effectivePhoto.isNotEmpty)
+                                              ? NetworkImage(effectivePhoto)
+                                              : null,
+                                      child: (effectivePhoto == null ||
+                                              effectivePhoto.isEmpty)
                                           ? Icon(
                                               Icons.person,
                                               size: 70,
@@ -113,8 +117,16 @@ class ProfileView extends StatelessWidget {
                                     child: GestureDetector(
                                       onTap: () {
                                         Get.bottomSheet(
-                                          CustomImagePickerFullSheet(
-                                              controller: profileController),
+                                          CustomImagePickerSheet(
+                                            multiSelect: false,
+                                            onConfirm: (files) {
+                                              if (files.isNotEmpty) {
+                                                profileController
+                                                    .uploadAvatarFromFile(
+                                                        files.first);
+                                              }
+                                            },
+                                          ),
                                           isScrollControlled: true,
                                           backgroundColor: Colors.transparent,
                                         );
@@ -172,7 +184,8 @@ class ProfileView extends StatelessWidget {
                   Container(
                     margin: const EdgeInsets.only(right: 16, top: 8),
                     child: IconButton(
-                      onPressed: () => _showLogoutDialog(context, authController),
+                      onPressed: () =>
+                          _showLogoutDialog(context, authController),
                       icon: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -189,7 +202,7 @@ class ProfileView extends StatelessWidget {
                   ),
                 ],
               ),
-              
+
               // Profile Content
               SliverToBoxAdapter(
                 child: Container(
@@ -197,7 +210,7 @@ class ProfileView extends StatelessWidget {
                   child: Column(
                     children: [
                       const SizedBox(height: 20),
-                      
+
                       // User Info Card
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -233,7 +246,8 @@ class ProfileView extends StatelessWidget {
                                 const SizedBox(width: 15),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         'Email',
@@ -256,9 +270,9 @@ class ProfileView extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            
+
                             const Divider(height: 30),
-                            
+
                             // Join date (if available)
                             Row(
                               children: [
@@ -277,7 +291,8 @@ class ProfileView extends StatelessWidget {
                                 const SizedBox(width: 15),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         'Tham gia',
@@ -317,11 +332,13 @@ class ProfileView extends StatelessWidget {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () => Get.to(() => const UpdateProfileView()),
+                                onPressed: () =>
+                                    Get.to(() => const UpdateProfileView()),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF667eea),
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -363,7 +380,8 @@ class ProfileView extends StatelessWidget {
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.grey[700],
                                   side: BorderSide(color: Colors.grey[300]!),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),

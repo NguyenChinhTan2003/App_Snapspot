@@ -1,22 +1,28 @@
+import 'dart:io';
 import 'dart:typed_data';
-import 'package:app_snapspot/presentations/profile/controllers/profile_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:image_picker/image_picker.dart';
 
-class CustomImagePickerFullSheet extends StatefulWidget {
-  final ProfileController controller;
+class CustomImagePickerSheet extends StatefulWidget {
+  final bool multiSelect;
+  final Function(List<File>) onConfirm;
 
-  const CustomImagePickerFullSheet({super.key, required this.controller});
+  const CustomImagePickerSheet({
+    super.key,
+    required this.multiSelect,
+    required this.onConfirm,
+  });
 
   @override
-  State<CustomImagePickerFullSheet> createState() =>
-      _CustomImagePickerFullSheetState();
+  State<CustomImagePickerSheet> createState() => _CustomImagePickerSheetState();
 }
 
-class _CustomImagePickerFullSheetState
-    extends State<CustomImagePickerFullSheet> {
+class _CustomImagePickerSheetState extends State<CustomImagePickerSheet> {
   List<AssetEntity> _media = [];
+  final List<AssetEntity> _selected = [];
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -32,7 +38,7 @@ class _CustomImagePickerFullSheetState
       );
       if (albums.isNotEmpty) {
         final recent = albums.first;
-        final media = await recent.getAssetListPaged(page: 0, size: 60);
+        final media = await recent.getAssetListPaged(page: 0, size: 120);
         setState(() => _media = media);
       }
     } else {
@@ -40,10 +46,19 @@ class _CustomImagePickerFullSheetState
     }
   }
 
+  Future<void> _openCamera() async {
+    final picked = await _picker.pickImage(source: ImageSource.camera);
+    if (picked != null) {
+      final file = File(picked.path);
+      widget.onConfirm([file]); // trả ảnh camera ngay
+      Get.back();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
+      height: MediaQuery.of(context).size.height * 0.8,
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -62,36 +77,22 @@ class _CustomImagePickerFullSheetState
             ),
           ),
 
-          // title
-          const Text(
-            "Chọn ảnh đại diện",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-
-          // 2 action: camera + album
+          // title + camera button
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildAction(
-                icon: Icons.camera_alt,
-                label: "Chụp ảnh",
-                onTap: () {
-                  Get.back();
-                  widget.controller.pickAndUploadAvatar(fromCamera: true);
-                },
+              Text(
+                widget.multiSelect ? "Chọn nhiều ảnh" : "Chọn ảnh",
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
-              _buildAction(
-                icon: Icons.photo_library,
-                label: "Album",
-                onTap: () {
-                  // scroll lên đầu grid hoặc load lại gallery
-                  _loadGallery();
-                },
+              IconButton(
+                onPressed: _openCamera,
+                icon: const Icon(Icons.camera_alt, color: Colors.blue),
+                tooltip: "Chụp ảnh",
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           Expanded(
             child: _media.isEmpty
@@ -106,9 +107,12 @@ class _CustomImagePickerFullSheetState
                     ),
                     itemCount: _media.length,
                     itemBuilder: (_, i) {
+                      final asset = _media[i];
+                      final isSelected = _selected.contains(asset);
+
                       return FutureBuilder<Uint8List?>(
-                        future: _media[i]
-                            .thumbnailDataWithSize(const ThumbnailSize(200, 200)),
+                        future: asset.thumbnailDataWithSize(
+                            const ThumbnailSize(200, 200)),
                         builder: (_, snapshot) {
                           final bytes = snapshot.data;
                           if (bytes == null) {
@@ -116,40 +120,73 @@ class _CustomImagePickerFullSheetState
                           }
                           return GestureDetector(
                             onTap: () async {
-                              final file = await _media[i].file;
-                              if (file != null) {
-                                Get.back(); // đóng sheet
-                                widget.controller.uploadAvatarFromFile(file);
+                              if (widget.multiSelect) {
+                                setState(() {
+                                  if (isSelected) {
+                                    _selected.remove(asset);
+                                  } else {
+                                    _selected.add(asset);
+                                  }
+                                });
+                              } else {
+                                final file = await asset.file;
+                                if (file != null) {
+                                  widget.onConfirm([file]);
+                                  Get.back();
+                                }
                               }
                             },
-                            child: Image.memory(bytes, fit: BoxFit.cover),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.memory(bytes, fit: BoxFit.cover),
+                                if (isSelected)
+                                  Container(
+                                    color: Colors.black.withOpacity(0.4),
+                                    child: const Center(
+                                      child: Icon(Icons.check_circle,
+                                          color: Colors.white, size: 32),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           );
                         },
                       );
                     },
                   ),
           ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildAction({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: Colors.blue.shade50,
-            child: Icon(icon, size: 26, color: Colors.blue),
-          ),
-          const SizedBox(height: 6),
-          Text(label, style: const TextStyle(fontSize: 13)),
+          if (widget.multiSelect)
+            SafeArea(
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _selected.isEmpty
+                      ? null
+                      : () async {
+                          final files = await Future.wait(
+                              _selected.map((e) => e.file).toList());
+                          widget.onConfirm(files.whereType<File>().toList());
+                          Get.back();
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    _selected.isEmpty
+                        ? "Chọn ít nhất 1 ảnh"
+                        : "Dùng ${_selected.length} ảnh",
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
