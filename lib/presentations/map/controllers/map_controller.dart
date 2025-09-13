@@ -23,6 +23,7 @@ class MapController extends GetxController {
 
   /// cache icon marker theo category để không phải render lại nhiều lần
   final Map<String, Uint8List> _markerCache = {};
+  final Map<String, PointAnnotation> _markerCacheById = {};
 
   // Location selection
   var mapMode = MapMode.normal.obs;
@@ -32,6 +33,11 @@ class MapController extends GetxController {
   void onInit() {
     super.onInit();
     _loadMapboxToken();
+    _initLocation();
+  }
+
+  void _initLocation() {
+    goToCurrentLocation();
   }
 
   Future<void> _loadMapboxToken() async {
@@ -63,9 +69,6 @@ class MapController extends GetxController {
     ));
 
     goToCurrentLocation();
-
-    // Load tất cả markers khi map được tạo
-    loadMarkers();
 
     // Nếu có checkin mới trả về từ màn checkin thì add marker đó
     final args = Get.arguments;
@@ -122,12 +125,10 @@ class MapController extends GetxController {
         debugPrint(
             "✅ Center coordinates: ${center.coordinates.lat}, ${center.coordinates.lng}");
 
-        // chuyển sang màn checkin
         final result = await Get.toNamed('/checkin', arguments: {
           'coordinates': center,
         });
 
-        // nếu checkin thành công, thêm marker mới vào map
         if (result != null && result is Map<String, dynamic>) {
           addCheckInMarker(result);
         }
@@ -152,58 +153,103 @@ class MapController extends GetxController {
     return markerBytes;
   }
 
-  /// Load toàn bộ markers từ Firestore
-  Future<void> loadMarkers() async {
-    if (mapboxMap == null) return;
-    try {
-      final checkinRepo = CheckInRepository();
-      final checkIns = await checkinRepo.getMarkerData();
-
-      final manager = await mapboxMap!.annotations.createPointAnnotationManager();
-
-      final annotationFutures = checkIns.map((checkIn) async {
-        final markerBytes = await getMarkerIcon(checkIn['categoryIcon']);
-        return PointAnnotationOptions(
-          geometry: Point(
-            coordinates: Position(
-              checkIn['longitude'],
-              checkIn['latitude'],
-            ),
-          ),
-          image: markerBytes,
-          iconSize: 1.0,
-        );
-      }).toList();
-
-      final annotations = await Future.wait(annotationFutures);
-      await manager.createMulti(annotations);
-
-      debugPrint("✅ Loaded ${annotations.length} markers");
-    } catch (e) {
-      debugPrint("❌ Error loading markers: $e");
-    }
-  }
-
   /// Thêm marker mới ngay sau khi checkin thành công
   Future<void> addCheckInMarker(Map<String, dynamic> checkIn) async {
     if (mapboxMap == null) return;
 
-    final lat = checkIn['latitude'] as double;
-    final lng = checkIn['longitude'] as double;
+    final id = checkIn['id'] as String;
+    if (_markerCacheById.containsKey(id)) {
+      debugPrint("⚠️ Marker $id đã tồn tại trong cache, bỏ qua");
+      return;
+    }
+
+    final lat = (checkIn['latitude'] as num).toDouble();
+    final lng = (checkIn['longitude'] as num).toDouble();
     final iconUrl = checkIn['categoryIcon'] as String?;
 
     if (iconUrl == null || iconUrl.isEmpty) return;
 
     final markerBytes = await getMarkerIcon(iconUrl);
-
     final manager = await mapboxMap!.annotations.createPointAnnotationManager();
 
-    await manager.create(PointAnnotationOptions(
-      geometry: Point(coordinates: Position(lng, lat)),
+    final annotation = await manager.create(PointAnnotationOptions(
+      geometry: Point(
+        coordinates: Position(lng, lat),
+      ),
       image: markerBytes,
       iconSize: 1.0,
     ));
 
-    debugPrint("✅ Added new marker: $lat, $lng");
+    _markerCacheById[id] = annotation;
+
+    debugPrint("✅ Added new marker: $lat, $lng (id=$id)");
+  }
+
+  // Lắng nghe sự kiện camera thay đổi
+  void onCameraChanged(CameraChangedEventData eventData) async {
+    try {
+      final cameraState = await mapboxMap?.getCameraState();
+      if (cameraState == null) return;
+
+      final bounds = await mapboxMap?.coordinateBoundsForCamera(
+        cameraState.toCameraOptions(),
+      );
+
+      if (bounds != null) {
+        await loadMarkersInView(bounds);
+      }
+    } catch (e) {
+      debugPrint("❌ Error in onCameraChanged: $e");
+    }
+  }
+
+  /// Load marker theo view camera
+  Future<void> loadMarkersInView(CoordinateBounds bounds) async {
+    if (mapboxMap == null) return;
+
+    try {
+      final checkinRepo = CheckInRepository();
+
+      // Lấy dữ liệu theo bounding box
+      final checkIns = await checkinRepo.getMarkerByBounds(
+        bounds.southwest.coordinates.lat.toDouble(),
+        bounds.southwest.coordinates.lng.toDouble(),
+        bounds.northeast.coordinates.lat.toDouble(),
+        bounds.northeast.coordinates.lng.toDouble(),
+      );
+
+      final manager =
+          await mapboxMap!.annotations.createPointAnnotationManager();
+
+      int newCount = 0;
+
+      for (final checkIn in checkIns) {
+        final id = checkIn['id'] as String;
+        if (_markerCacheById.containsKey(id)) {
+          // đã có rồi -> skip
+          continue;
+        }
+
+        final markerBytes = await getMarkerIcon(checkIn['categoryIcon']);
+        final annotation = await manager.create(PointAnnotationOptions(
+          geometry: Point(
+            coordinates: Position(
+              (checkIn['longitude'] as num).toDouble(),
+              (checkIn['latitude'] as num).toDouble(),
+            ),
+          ),
+          image: markerBytes,
+          iconSize: 1.0,
+        ));
+
+        _markerCacheById[id] = annotation;
+        newCount++;
+      }
+
+      debugPrint(
+          "✅ Loaded $newCount new markers (cache size=${_markerCacheById.length})");
+    } catch (e) {
+      debugPrint("❌ Error loading markers in view: $e");
+    }
   }
 }
