@@ -6,7 +6,7 @@ class CheckInModel {
   final String userId;
   final String content;
   final String categoryId;
-  final String categoryIcon; // <- Lưu trực tiếp từ Firestore
+  final String categoryIcon; 
   final String vibeId;
   final String vibeIcon;
   final double latitude;

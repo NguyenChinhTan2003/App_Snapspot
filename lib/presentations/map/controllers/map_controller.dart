@@ -1,6 +1,11 @@
 import 'dart:async';
+import 'package:app_snapspot/core/common_widgets/custom_detail_checkin.dart';
+import 'package:app_snapspot/core/common_widgets/custom_location_checkin.dart';
 import 'package:app_snapspot/core/common_widgets/custom_marker_helper.dart';
+import 'package:app_snapspot/core/common_widgets/custom_point_annotation_click_listener.dart';
+import 'package:app_snapspot/data/models/checkin_model.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,13 +26,18 @@ class MapController extends GetxController {
 
   MapboxMap? mapboxMap;
 
+  mapbox.PointAnnotationManager? _annotationManager;
+
   /// cache icon marker theo category để không phải render lại nhiều lần
   final Map<String, Uint8List> _markerCache = {};
   final Map<String, PointAnnotation> _markerCacheById = {};
 
-  // Location selection
+  /// mapping annotationId -> checkInId
+  final Map<String, String> _annotationIdToCheckInId = {};
+
   var mapMode = MapMode.normal.obs;
   var isAddButtonVisible = true.obs;
+  var isBottomSheetOpen = false.obs;
 
   @override
   void onInit() {
@@ -57,7 +67,7 @@ class MapController extends GetxController {
     }
   }
 
-  void onMapCreated(MapboxMap map) {
+  void onMapCreated(MapboxMap map) async {
     mapboxMap = map;
     debugPrint("✅ Mapbox map created");
 
@@ -67,6 +77,19 @@ class MapController extends GetxController {
       puckBearing: PuckBearing.HEADING,
       puckBearingEnabled: true,
     ));
+
+    // Tạo annotation manager 1 lần, dùng lại khi tạo marker
+    _annotationManager =
+        await mapboxMap!.annotations.createPointAnnotationManager();
+
+    // Gắn custom listener
+    // ignore: deprecated_member_use
+    _annotationManager?.addOnPointAnnotationClickListener(
+      CustomPointAnnotationClickListener(
+        annotationIdToCheckInId: _annotationIdToCheckInId,
+        onMarkerTapped: onMarkerTapped,
+      ),
+    );
 
     goToCurrentLocation();
 
@@ -88,6 +111,7 @@ class MapController extends GetxController {
       if (permission == geo.LocationPermission.deniedForever) return;
 
       geo.Position position = await geo.Geolocator.getCurrentPosition(
+        // ignore: deprecated_member_use
         desiredAccuracy: geo.LocationAccuracy.high,
       );
 
@@ -157,9 +181,10 @@ class MapController extends GetxController {
   Future<void> addCheckInMarker(Map<String, dynamic> checkIn) async {
     if (mapboxMap == null) return;
 
-    final id = checkIn['id'] as String;
-    if (_markerCacheById.containsKey(id)) {
-      debugPrint("⚠️ Marker $id đã tồn tại trong cache, bỏ qua");
+    final checkInId = checkIn['id'] as String;
+
+    if (_markerCacheById.containsKey(checkInId)) {
+      debugPrint("⚠️ Marker $checkInId đã tồn tại trong cache, bỏ qua");
       return;
     }
 
@@ -170,19 +195,19 @@ class MapController extends GetxController {
     if (iconUrl == null || iconUrl.isEmpty) return;
 
     final markerBytes = await getMarkerIcon(iconUrl);
-    final manager = await mapboxMap!.annotations.createPointAnnotationManager();
 
-    final annotation = await manager.create(PointAnnotationOptions(
-      geometry: Point(
-        coordinates: Position(lng, lat),
+    final annotation = await _annotationManager!.create(
+      PointAnnotationOptions(
+        geometry: Point(
+          coordinates: Position(lng, lat),
+        ),
+        image: markerBytes,
+        iconSize: 1.0,
       ),
-      image: markerBytes,
-      iconSize: 1.0,
-    ));
+    );
 
-    _markerCacheById[id] = annotation;
-
-    debugPrint("✅ Added new marker: $lat, $lng (id=$id)");
+    _markerCacheById[checkInId] = annotation;
+    _annotationIdToCheckInId[annotation.id] = checkInId;
   }
 
   // Lắng nghe sự kiện camera thay đổi
@@ -218,9 +243,6 @@ class MapController extends GetxController {
         bounds.northeast.coordinates.lng.toDouble(),
       );
 
-      final manager =
-          await mapboxMap!.annotations.createPointAnnotationManager();
-
       int newCount = 0;
 
       for (final checkIn in checkIns) {
@@ -231,7 +253,8 @@ class MapController extends GetxController {
         }
 
         final markerBytes = await getMarkerIcon(checkIn['categoryIcon']);
-        final annotation = await manager.create(PointAnnotationOptions(
+        final annotation =
+            await _annotationManager!.create(PointAnnotationOptions(
           geometry: Point(
             coordinates: Position(
               (checkIn['longitude'] as num).toDouble(),
@@ -243,6 +266,7 @@ class MapController extends GetxController {
         ));
 
         _markerCacheById[id] = annotation;
+        _annotationIdToCheckInId[annotation.id] = id;
         newCount++;
       }
 
@@ -250,6 +274,44 @@ class MapController extends GetxController {
           "✅ Loaded $newCount new markers (cache size=${_markerCacheById.length})");
     } catch (e) {
       debugPrint("❌ Error loading markers in view: $e");
+    }
+  }
+
+  // Cập nhật method onMarkerTapped trong MapController
+
+  Future<void> onMarkerTapped(String markerId) async {
+    if (isBottomSheetOpen.value) return;
+    isBottomSheetOpen.value = true;
+
+    try {
+      // Lấy thông tin check-in được tap để biết vị trí
+      final snapshot = await FirebaseFirestore.instance
+          .collection("checkins")
+          .doc(markerId)
+          .get();
+
+      if (snapshot.exists) {
+        final checkinData = snapshot.data()!;
+        final latitude = (checkinData['latitude'] as num).toDouble();
+        final longitude = (checkinData['longitude'] as num).toDouble();
+
+        // Thay vì hiển thị chi tiết 1 check-in, hiển thị tất cả check-in tại vị trí này
+        await Get.bottomSheet(
+          LocationCheckInsBottomSheet(
+            latitude: latitude,
+            longitude: longitude,
+            radiusKm: 0.1, // 100m radius để group các check-in gần nhau
+            locationName: "Vị trí được chọn",
+          ),
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+        );
+
+        isBottomSheetOpen.value = false;
+      }
+    } catch (e) {
+      debugPrint("❌ Error loading location checkins: $e");
+      isBottomSheetOpen.value = false;
     }
   }
 }
