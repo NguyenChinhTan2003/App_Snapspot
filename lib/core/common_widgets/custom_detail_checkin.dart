@@ -62,9 +62,23 @@ class CheckInBottomSheet extends StatelessWidget {
             // Category + vibe
             Row(
               children: [
-                Text(
+                Image.network(
                   checkin.categoryIcon,
-                  style: const TextStyle(fontSize: 24),
+                  width: 20,
+                  height: 20,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.broken_image,
+                      size: 20,
+                      color: Colors.grey),
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    );
+                  },
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -77,6 +91,13 @@ class CheckInBottomSheet extends StatelessWidget {
                 Text(
                   checkin.vibeIcon,
                   style: const TextStyle(fontSize: 24),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  checkin.vibeId,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ],
             ),

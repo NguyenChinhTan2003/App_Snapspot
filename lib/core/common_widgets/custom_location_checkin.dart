@@ -38,10 +38,12 @@ class LocationCheckInsBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<LocationCheckInsBottomSheet> createState() => _LocationCheckInsBottomSheetState();
+  State<LocationCheckInsBottomSheet> createState() =>
+      _LocationCheckInsBottomSheetState();
 }
 
-class _LocationCheckInsBottomSheetState extends State<LocationCheckInsBottomSheet> {
+class _LocationCheckInsBottomSheetState
+    extends State<LocationCheckInsBottomSheet> {
   final CheckInRepository _repository = CheckInRepository();
   List<EnhancedCheckInModel> _enhancedCheckins = [];
   bool _isLoading = true;
@@ -68,26 +70,34 @@ class _LocationCheckInsBottomSheetState extends State<LocationCheckInsBottomShee
       final double maxLng = widget.longitude + kmToDegree;
 
       // Lấy check-ins
-      final checkinsData = await _repository.getMarkerByBounds(minLat, minLng, maxLat, maxLng);
-      final checkins = checkinsData.map((data) => CheckInModel.fromJson(data)).toList();
+      final checkinsData =
+          await _repository.getMarkerByBounds(minLat, minLng, maxLat, maxLng);
+      final checkins =
+          checkinsData.map((data) => CheckInModel.fromJson(data)).toList();
       checkins.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       // Load thêm thông tin cho mỗi check-in
       final List<EnhancedCheckInModel> enhancedList = [];
-      
+
       for (final checkin in checkins) {
         // Load profile
         ProfileModel? profile;
         try {
           final profileDoc = await FirebaseFirestore.instance
-              .collection('users')
+              .collection('profiles')
               .doc(checkin.userId)
               .get();
+
           if (profileDoc.exists) {
+            debugPrint(
+                "✅ Profile data for ${checkin.userId}: ${profileDoc.data()}");
             profile = ProfileModel.fromJson(profileDoc.data()!);
+          } else {
+            debugPrint("⚠️ Profile not found for ${checkin.userId}");
           }
-        } catch (e) {
+        } catch (e, st) {
           debugPrint("❌ Error loading profile for ${checkin.userId}: $e");
+          debugPrint("StackTrace: $st");
         }
 
         // Load category
@@ -108,7 +118,7 @@ class _LocationCheckInsBottomSheetState extends State<LocationCheckInsBottomShee
         VibeModel? vibe;
         try {
           final vibeDoc = await FirebaseFirestore.instance
-              .collection('vibes')
+              .collection('vibe')
               .doc(checkin.vibeId)
               .get();
           if (vibeDoc.exists) {
@@ -319,7 +329,8 @@ class _EnhancedCheckInCard extends StatelessWidget {
     final profile = enhancedCheckIn.profile;
     final category = enhancedCheckIn.category;
     final vibe = enhancedCheckIn.vibe;
-    final formattedDate = DateFormat('dd/MM/yyyy • HH:mm').format(checkin.createdAt);
+    final formattedDate =
+        DateFormat('dd/MM/yyyy • HH:mm').format(checkin.createdAt);
 
     return Card(
       elevation: 2,
@@ -340,24 +351,26 @@ class _EnhancedCheckInCard extends StatelessWidget {
                   // Avatar
                   CircleAvatar(
                     radius: 20,
-                    backgroundImage: profile?.photoUrl != null && profile!.photoUrl!.isNotEmpty
+                    backgroundImage: profile?.photoUrl != null &&
+                            profile!.photoUrl!.isNotEmpty
                         ? NetworkImage(profile.photoUrl!)
                         : null,
                     backgroundColor: Colors.grey[300],
-                    child: profile?.photoUrl == null || profile!.photoUrl!.isEmpty
-                        ? Text(
-                            profile?.displayName.isNotEmpty == true 
-                                ? profile!.displayName[0].toUpperCase()
-                                : "U",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          )
-                        : null,
+                    child:
+                        profile?.photoUrl == null || profile!.photoUrl!.isEmpty
+                            ? Text(
+                                profile?.displayName.isNotEmpty == true
+                                    ? profile!.displayName[0].toUpperCase()
+                                    : "U",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : null,
                   ),
                   const SizedBox(width: 12),
-                  
+
                   // Thông tin user
                   Expanded(
                     child: Column(
@@ -365,20 +378,22 @@ class _EnhancedCheckInCard extends StatelessWidget {
                       children: [
                         Text(
                           profile?.displayName ?? "Người dùng ẩn danh",
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                         ),
                         Text(
                           formattedDate,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey[600],
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
                         ),
                       ],
                     ),
                   ),
-                  
+
                   // Arrow icon
                   Icon(
                     Icons.arrow_forward_ios,
@@ -409,7 +424,8 @@ class _EnhancedCheckInCard extends StatelessWidget {
                 children: [
                   // Category
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.blue[50],
                       borderRadius: BorderRadius.circular(16),
@@ -417,27 +433,42 @@ class _EnhancedCheckInCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Text(
-                        //   checkin.categoryIcon,
-                        //   style: const TextStyle(fontSize: 16),
-                        // ),
+                        Image.network(
+                          checkin.categoryIcon,
+                          width: 20,
+                          height: 20,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.broken_image,
+                                  size: 20, color: Colors.grey),
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            );
+                          },
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           category?.name ?? checkin.categoryId,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.blue[700],
-                                fontWeight: FontWeight.w500,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.blue[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
                         ),
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(width: 8),
-                  
+
                   // Vibe
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.orange[50],
                       borderRadius: BorderRadius.circular(16),
@@ -445,17 +476,18 @@ class _EnhancedCheckInCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Text(
-                        //   checkin.vibeIcon,
-                        //   style: const TextStyle(fontSize: 16),
-                        // ),
+                        Text(
+                          checkin.vibeIcon,
+                          style: const TextStyle(fontSize: 16),
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           vibe?.name ?? checkin.vibeId,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.orange[700],
-                                fontWeight: FontWeight.w500,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.orange[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
                         ),
                       ],
                     ),
