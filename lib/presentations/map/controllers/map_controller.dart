@@ -4,7 +4,9 @@ import 'package:app_snapspot/core/common_widgets/custom_location_checkin.dart';
 import 'package:app_snapspot/core/common_widgets/custom_marker_helper.dart';
 import 'package:app_snapspot/core/common_widgets/custom_point_annotation_click_listener.dart';
 import 'package:app_snapspot/data/models/checkin_model.dart';
+import 'package:app_snapspot/data/models/spot_model.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
+import 'package:app_snapspot/domains/repositories/spot_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -86,7 +88,7 @@ class MapController extends GetxController {
     // ignore: deprecated_member_use
     _annotationManager?.addOnPointAnnotationClickListener(
       CustomPointAnnotationClickListener(
-        annotationIdToCheckInId: _annotationIdToCheckInId,
+        annotationIdToSpotId: _annotationIdToCheckInId,
         onMarkerTapped: onMarkerTapped,
       ),
     );
@@ -95,8 +97,8 @@ class MapController extends GetxController {
 
     // Nếu có checkin mới trả về từ màn checkin thì add marker đó
     final args = Get.arguments;
-    if (args != null && args is Map<String, dynamic>) {
-      addCheckInMarker(args);
+    if (args != null && args is SpotModel) {
+      addSpotMarker(args);
     }
   }
 
@@ -153,8 +155,8 @@ class MapController extends GetxController {
           'coordinates': center,
         });
 
-        if (result != null && result is Map<String, dynamic>) {
-          addCheckInMarker(result);
+        if (result != null && result is SpotModel) {
+          addSpotMarker(result);
         }
 
         cancelLocationSelection();
@@ -178,36 +180,30 @@ class MapController extends GetxController {
   }
 
   /// Thêm marker mới ngay sau khi checkin thành công
-  Future<void> addCheckInMarker(Map<String, dynamic> checkIn) async {
+  Future<void> addSpotMarker(SpotModel spot) async {
     if (mapboxMap == null) return;
 
-    final checkInId = checkIn['id'] as String;
-
-    if (_markerCacheById.containsKey(checkInId)) {
-      debugPrint("⚠️ Marker $checkInId đã tồn tại trong cache, bỏ qua");
+    if (_markerCacheById.containsKey(spot.id)) {
+      debugPrint("⚠️ Marker ${spot.id} đã tồn tại trong cache, bỏ qua");
       return;
     }
 
-    final lat = (checkIn['latitude'] as num).toDouble();
-    final lng = (checkIn['longitude'] as num).toDouble();
-    final iconUrl = checkIn['categoryIcon'] as String?;
+    if (spot.categoryIcon.isEmpty) return;
 
-    if (iconUrl == null || iconUrl.isEmpty) return;
-
-    final markerBytes = await getMarkerIcon(iconUrl);
+    final markerBytes = await getMarkerIcon(spot.categoryIcon);
 
     final annotation = await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: Point(
-          coordinates: Position(lng, lat),
+          coordinates: Position(spot.longitude, spot.latitude),
         ),
         image: markerBytes,
         iconSize: 1.0,
       ),
     );
 
-    _markerCacheById[checkInId] = annotation;
-    _annotationIdToCheckInId[annotation.id] = checkInId;
+    _markerCacheById[spot.id] = annotation;
+    _annotationIdToCheckInId[annotation.id] = spot.id;
   }
 
   // Lắng nghe sự kiện camera thay đổi
@@ -233,84 +229,73 @@ class MapController extends GetxController {
     if (mapboxMap == null) return;
 
     try {
-      final checkinRepo = CheckInRepository();
+      final spotRepo = SpotRepository();
 
-      // Lấy dữ liệu theo bounding box
-      final checkIns = await checkinRepo.getMarkerByBounds(
-        bounds.southwest.coordinates.lat.toDouble(),
-        bounds.southwest.coordinates.lng.toDouble(),
-        bounds.northeast.coordinates.lat.toDouble(),
-        bounds.northeast.coordinates.lng.toDouble(),
+      // Lấy Spot theo bounding box
+      final spots = await spotRepo.getSpotsInBoundingBox(
+        minLat: bounds.southwest.coordinates.lat.toDouble(),
+        maxLat: bounds.northeast.coordinates.lat.toDouble(),
+        minLng: bounds.southwest.coordinates.lng.toDouble(),
+        maxLng: bounds.northeast.coordinates.lng.toDouble(),
       );
 
       int newCount = 0;
 
-      for (final checkIn in checkIns) {
-        final id = checkIn['id'] as String;
+      for (final spot in spots) {
+        final id = spot.id;
         if (_markerCacheById.containsKey(id)) {
-          // đã có rồi -> skip
-          continue;
+          continue; // đã có marker
         }
 
-        final markerBytes = await getMarkerIcon(checkIn['categoryIcon']);
-        final annotation =
-            await _annotationManager!.create(PointAnnotationOptions(
-          geometry: Point(
-            coordinates: Position(
-              (checkIn['longitude'] as num).toDouble(),
-              (checkIn['latitude'] as num).toDouble(),
+        final markerBytes = await getMarkerIcon(spot.categoryIcon);
+        final annotation = await _annotationManager!.create(
+          PointAnnotationOptions(
+            geometry: Point(
+              coordinates: Position(spot.longitude, spot.latitude),
             ),
+            image: markerBytes,
+            iconSize: 1.0,
           ),
-          image: markerBytes,
-          iconSize: 1.0,
-        ));
+        );
 
         _markerCacheById[id] = annotation;
-        _annotationIdToCheckInId[annotation.id] = id;
+        _annotationIdToCheckInId[annotation.id] = id; // lưu spotId
         newCount++;
       }
 
       debugPrint(
-          "✅ Loaded $newCount new markers (cache size=${_markerCacheById.length})");
+          "✅ Loaded $newCount new spot markers (cache size=${_markerCacheById.length})");
     } catch (e) {
-      debugPrint("❌ Error loading markers in view: $e");
+      debugPrint("❌ Error loading spot markers in view: $e");
     }
   }
 
-  // Cập nhật method onMarkerTapped trong MapController
-
-  Future<void> onMarkerTapped(String markerId) async {
+  /// Khi user tap vào marker Spot
+  Future<void> onMarkerTapped(String spotId) async {
     if (isBottomSheetOpen.value) return;
     isBottomSheetOpen.value = true;
 
     try {
-      // Lấy thông tin check-in được tap để biết vị trí
-      final snapshot = await FirebaseFirestore.instance
-          .collection("checkins")
-          .doc(markerId)
+      final spotDoc = await FirebaseFirestore.instance
+          .collection("spots")
+          .doc(spotId)
           .get();
 
-      if (snapshot.exists) {
-        final checkinData = snapshot.data()!;
-        final latitude = (checkinData['latitude'] as num).toDouble();
-        final longitude = (checkinData['longitude'] as num).toDouble();
-
-        // Thay vì hiển thị chi tiết 1 check-in, hiển thị tất cả check-in tại vị trí này
-        await Get.bottomSheet(
-          LocationCheckInsBottomSheet(
-            latitude: latitude,
-            longitude: longitude,
-            radiusKm: 0.1, // 100m radius để group các check-in gần nhau
-            locationName: "Vị trí được chọn",
-          ),
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-        );
-
+      if (!spotDoc.exists) {
         isBottomSheetOpen.value = false;
+        return;
       }
+
+      final spot = SpotModel.fromJson(spotDoc.data()!..['id'] = spotDoc.id);
+
+      await Get.bottomSheet(
+        LocationCheckInsBottomSheet(spot: spot),
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+      );
     } catch (e) {
-      debugPrint("❌ Error loading location checkins: $e");
+      debugPrint("❌ Error loading spot: $e");
+    } finally {
       isBottomSheetOpen.value = false;
     }
   }

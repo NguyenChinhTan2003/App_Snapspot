@@ -60,24 +60,22 @@ class AuthController extends GetxController {
     try {
       final db = FirebaseFirestore.instance;
       final docRef = db.collection("profiles").doc(user.uid);
-      
+
       // Kiểm tra xem hồ sơ đã tồn tại chưa
       final doc = await docRef.get();
       if (doc.exists && doc.data()?['isCustomAvatar'] == true) {
-
         print('Existing profile with custom avatar found for UID: ${user.uid}');
         await docRef.set({
           "uid": user.uid,
           "email": user.email,
         }, SetOptions(merge: true));
       } else {
-   
         print('Creating/updating profile for UID: ${user.uid}');
         await docRef.set({
           "uid": user.uid,
           "name": user.displayName ?? "",
           "email": user.email,
-          "photoUrl": null, 
+          "photoUrl": user.photoURL ?? "",
           "isCustomAvatar": false,
           "createdAt": FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));

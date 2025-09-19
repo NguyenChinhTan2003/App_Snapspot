@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "1054104127433",
+    "firebase_url": "https://snapspot-c9ace-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "snapspot-c9ace",
     "storage_bucket": "snapspot-c9ace.firebasestorage.app"
   },
@@ -14,11 +15,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "1054104127433-nvd05pfl8g77guvid88ge7tnhiqe7m46.apps.googleusercontent.com",
+          "client_id": "1054104127433-um9s1l4vocmtm8vh5t5526jqksq8pdf5.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.app_snapspot",
-            "certificate_hash": "80c0902579f8ebff8e60588dcdee89134e29e48f"
+            "certificate_hash": "cdb585d5f8458c628f0bfd1c66eb6b68f9d6701d"
           }
         },
         {

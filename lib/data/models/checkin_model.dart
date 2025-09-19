@@ -4,9 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class CheckInModel {
   final String id;
   final String userId;
+  final String spotId;
   final String content;
   final String categoryId;
-  final String categoryIcon; 
+  final String categoryIcon;
   final String vibeId;
   final String vibeIcon;
   final double latitude;
@@ -18,6 +19,7 @@ class CheckInModel {
   CheckInModel({
     required this.id,
     required this.userId,
+    required this.spotId,
     required this.content,
     required this.categoryId,
     required this.categoryIcon,
@@ -34,6 +36,7 @@ class CheckInModel {
     return {
       "id": id,
       "userId": userId,
+      "spotId": spotId,
       "content": content,
       "categoryId": categoryId,
       "categoryIcon": categoryIcon,
@@ -42,7 +45,7 @@ class CheckInModel {
       "latitude": latitude,
       "longitude": longitude,
       "images": images,
-      "createdAt": createdAt,
+      "createdAt": Timestamp.fromDate(createdAt),
     };
   }
 
@@ -61,6 +64,7 @@ class CheckInModel {
     return CheckInModel(
       id: json["id"] ?? "",
       userId: json["userId"] ?? "",
+      spotId: json["spotId"] ?? "",
       content: json["content"] ?? "",
       categoryId: json["categoryId"] ?? "",
       categoryIcon: json["categoryIcon"] ?? "",

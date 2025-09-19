@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:app_snapspot/data/models/checkin_model.dart';
+import 'package:app_snapspot/data/models/spot_model.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
+import 'package:app_snapspot/domains/repositories/spot_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -21,6 +23,7 @@ class CheckinController extends GetxController {
   final CheckInRepository _checkinRepo = CheckInRepository();
   final CategoryRepository _categoryRepo = CategoryRepository();
   final VibeRepository _vibeRepo = VibeRepository();
+  final SpotRepository _spotRepo = SpotRepository();
 
   final RxList<File> images = <File>[].obs;
   final contentController = TextEditingController();
@@ -83,7 +86,7 @@ class CheckinController extends GetxController {
       categories.value = await _categoryRepo.getCategories();
       vibes.value = await _vibeRepo.getVibes();
     } catch (e) {
-      print("Error loading data: $e");
+      debugPrint("Error loading data: $e");
     } finally {
       isLoading.value = false;
     }
@@ -115,66 +118,96 @@ class CheckinController extends GetxController {
   }
 
   Future<Map<String, dynamic>?> submitCheckIn() async {
-  if (userId == null) {
-    Get.snackbar("Lỗi", "Bạn cần đăng nhập trước khi checkin");
-    return null;
-  }
-  if (selectedCategory.value == null || selectedVibe.value == null) {
-    Get.snackbar("Lỗi", "Vui lòng chọn danh mục và vibe");
-    return null;
-  }
+    if (userId == null) {
+      Get.snackbar("Lỗi", "Bạn cần đăng nhập trước khi checkin");
+      return null;
+    }
+    if (selectedCategory.value == null || selectedVibe.value == null) {
+      Get.snackbar("Lỗi", "Vui lòng chọn danh mục và vibe");
+      return null;
+    }
 
-  try {
-    isLoading.value = true;
-    final checkInId = const Uuid().v4();
+    try {
+      isLoading.value = true;
+      final checkInId = const Uuid().v4();
 
-    // Tạo check-in  (metadata, images rỗng)
-    final checkIn = CheckInModel(
-      id: checkInId,
-      userId: userId!,
-      content: contentController.text,
-      categoryId: selectedCategory.value!.id,
-      categoryIcon: selectedCategory.value!.iconUrl,
-      vibeId: selectedVibe.value!.id,
-      vibeIcon: selectedVibe.value!.icon,
-      latitude: latitude,
-      longitude: longitude,
-      images: [], 
-      createdAt: DateTime.now(),
-    );
+      // Tìm Spot (gần toạ độ)
+      SpotModel? spot = await _spotRepo.findSpot(latitude, longitude);
 
-    await _checkinRepo.createCheckIn(checkIn);
+      if (spot!.categoryId != selectedCategory.value!.id) {
+        debugPrint("🔹 Spot hiện tại không cùng category, tạo spot mới");
+        spot = null;
+      } else {
+        debugPrint("🔹 Spot found and same category: ${spot?.id}");
+      }
+      // Nếu chưa có thì tạo Spot mới (tạo SpotModel rồi gọi repo.createSpot)
+      if (spot == null) {
+        final newSpot = SpotModel(
+          id: const Uuid().v4(),
+          latitude: latitude,
+          longitude: longitude,
+          categoryId: selectedCategory.value!.id,
+          categoryIcon: selectedCategory.value!.iconUrl,
+          name: null, // hoặc truyền tên nếu bạn có
+          createdAt: DateTime.now(),
+        );
 
-    // Trả về ngay để UI hiển thị check-in
-    final result = checkIn.toJson();
-    Get.back(result: result);
+        await _spotRepo.createSpot(newSpot);
+        spot = newSpot;
+      }
 
-    //Upload ảnh song song (ngầm)
-    Future.wait(images.asMap().entries.map((entry) async {
-      final i = entry.key;
-      final file = entry.value;
-      final fileName = "img_$i.jpg";
-      final uint8list = Uint8List.fromList(await file.toBytes());
-
-      return await _checkinRepo.uploadImage(
-        userId!,
-        checkInId,
-        fileName,
-        uint8list,
+      //Tạo CheckIn
+      final checkIn = CheckInModel(
+        id: checkInId,
+        userId: userId!,
+        spotId: spot.id,
+        content: contentController.text,
+        categoryId: selectedCategory.value!.id,
+        categoryIcon: selectedCategory.value!.iconUrl,
+        vibeId: selectedVibe.value!.id,
+        vibeIcon: selectedVibe.value!.icon,
+        latitude: latitude,
+        longitude: longitude,
+        images: [],
+        createdAt: DateTime.now(),
       );
-    })).then((urls) async {
-      //Update lại check-in với danh sách ảnh
-      await _checkinRepo.updateCheckInImages(checkInId, urls);
-      print("✅ Images uploaded and updated for $checkInId");
-    });
 
-    return result;
-  } catch (e) {
-    print("❌ Error: $e");
-    return null;
-  } finally {
-    isLoading.value = false;
+      // Lưu checkin (repo sẽ thêm field spotId nếu bạn dùng collection "checkins")
+      await _checkinRepo.createCheckIn(checkIn, spot.id);
+
+      final result = {
+        ...checkIn.toJson(),
+        "spotId": spot.id,
+      };
+
+      // Quay về màn trước với result
+      Get.back(result: result);
+
+      // Upload ảnh song song
+      if (images.isNotEmpty) {
+        Future.wait(images.asMap().entries.map((entry) async {
+          final i = entry.key;
+          final file = entry.value;
+          final fileName = "img_$i.jpg";
+          final uint8list = Uint8List.fromList(await file.toBytes());
+          return await _checkinRepo.uploadImage(
+            userId!,
+            checkInId,
+            fileName,
+            uint8list,
+          );
+        })).then((urls) async {
+          await _checkinRepo.updateCheckInImages(checkInId, urls);
+          debugPrint("✅ Images uploaded for $checkInId");
+        });
+      }
+
+      return result;
+    } catch (e) {
+      debugPrint("❌ Error in submitCheckIn: $e");
+      return null;
+    } finally {
+      isLoading.value = false;
+    }
   }
-}
-
 }
