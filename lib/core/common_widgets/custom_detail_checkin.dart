@@ -1,14 +1,36 @@
+import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
+import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
+import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:app_snapspot/data/models/checkin_model.dart';
+import 'package:app_snapspot/presentations/checkin/controllers/checkin_detail_controller.dart';
 
 class CheckInBottomSheet extends StatelessWidget {
   final CheckInModel checkin;
+  final String? currentUserId;
 
-  const CheckInBottomSheet({super.key, required this.checkin});
+  const CheckInBottomSheet(
+      {super.key, required this.checkin, this.currentUserId});
 
   @override
   Widget build(BuildContext context) {
+    final authController = Get.find<AuthController>();
+    final controller = Get.put(
+      CheckInDetailController(checkin.userId),
+      tag: checkin.id,
+    );
+
+    final likeController = Get.put(
+      ClickLikeController(
+        repo: CheckInRepository(),
+        checkin: checkin,
+        currentUserId: authController.firebaseUser.value?.uid,
+      ),
+      tag: "like-${checkin.id}",
+    );
+
     final formattedDate =
         DateFormat('dd/MM/yyyy • HH:mm').format(checkin.createdAt);
 
@@ -26,167 +48,230 @@ class CheckInBottomSheet extends StatelessWidget {
         ],
       ),
       child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // drag handle
-            Center(
-              child: Container(
-                width: 50,
-                height: 5,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[400],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+        child: Obx(() {
+          final user = controller.user.value;
+          final isLoading = controller.isLoading.value;
 
-            // Ảnh chính với Hero animation
-            if (checkin.images.isNotEmpty)
-              Hero(
-                tag: "checkin-${checkin.id}",
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    checkin.images.first,
-                    width: double.infinity,
-                    height: 220,
-                    fit: BoxFit.cover,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 50,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
 
-            const SizedBox(height: 16),
-
-            // Category + vibe
-            Row(
-              children: [
-                Image.network(
-                  checkin.categoryIcon,
-                  width: 20,
-                  height: 20,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.broken_image,
-                      size: 20,
-                      color: Colors.grey),
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    );
-                  },
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  checkin.categoryId,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const Spacer(),
-                Text(
-                  checkin.vibeIcon,
-                  style: const TextStyle(fontSize: 24),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  checkin.vibeId,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Nội dung
-            if (checkin.content.isNotEmpty)
-              Card(
-                elevation: 0,
-                color: Colors.grey[100],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    checkin.content,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ),
-              ),
-
-            const SizedBox(height: 12),
-
-            // Vị trí + thời gian
-            Row(
-              children: [
-                const Icon(Icons.place, color: Colors.red, size: 20),
-                const SizedBox(width: 6),
-                Text(
-                  "${checkin.latitude.toStringAsFixed(5)}, ${checkin.longitude.toStringAsFixed(5)}",
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.black54,
-                      ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 6),
-
-            Row(
-              children: [
-                const Icon(Icons.access_time, size: 20, color: Colors.grey),
-                const SizedBox(width: 6),
-                Text(
-                  formattedDate,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.black54,
-                      ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Ảnh phụ
-            if (checkin.images.length > 1)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Header: Người đăng + Thời gian
+              Row(
                 children: [
-                  Text(
-                    "Ảnh khác",
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundImage: user?.photoUrl != null
+                        ? NetworkImage(user!.photoUrl!)
+                        : null,
+                    backgroundColor: Colors.grey[300],
+                    child: isLoading
+                        ? const CircularProgressIndicator(strokeWidth: 2)
+                        : (user?.photoUrl == null
+                            ? const Icon(Icons.person, color: Colors.white)
+                            : null),
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 100,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: checkin.images.length - 1,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (_, index) => ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          checkin.images[index + 1],
-                          width: 120,
-                          height: 100,
-                          fit: BoxFit.cover,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              user?.displayName ??
+                                  (isLoading ? "Đang tải..." : "Ẩn danh"),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const Spacer(),
+                            Text(
+                              formattedDate,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(color: Colors.black87),
+                            ),
+                          ],
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
               ),
-          ],
-        ),
+
+              const SizedBox(height: 16),
+
+              // Ảnh chính
+              if (checkin.images.isNotEmpty)
+                Hero(
+                  tag: "checkin-${checkin.id}",
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      checkin.images.first,
+                      width: double.infinity,
+                      height: 220,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 16),
+
+              // Category + Vibe + Like/Dislike
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      if (checkin.categoryIcon.isNotEmpty)
+                        Chip(
+                          label: Text(checkin.categoryId),
+                          avatar: Image.network(
+                            checkin.categoryIcon,
+                            width: 20,
+                            height: 20,
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      Chip(
+                        label: Text(checkin.vibeId),
+                        avatar: Text(
+                          checkin.vibeIcon,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Obx(() {
+                    final isLiked = likeController.isLiked;
+                    final isDisliked = likeController.isDisliked;
+
+                    return Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.thumb_up,
+                              color: isLiked ? Colors.blue : Colors.grey),
+                          onPressed: () => likeController.toggleLike(),
+                        ),
+                        Text("${likeController.likes.length}"),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(Icons.thumb_down,
+                              color: isDisliked ? Colors.red : Colors.grey),
+                          onPressed: () => likeController.toggleDislike(),
+                        ),
+                        Text("${likeController.dislikes.length}"),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Tên địa điểm
+              Row(
+                children: [
+                  const Text("Tên địa điểm : ",
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 20),
+                  Text(checkin.name,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.normal)),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Vị trí
+              Row(
+                children: [
+                  const Icon(Icons.place, color: Colors.red, size: 20),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      "${checkin.latitude.toStringAsFixed(5)}, ${checkin.longitude.toStringAsFixed(5)}",
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: Colors.black54),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Nội dung
+              if (checkin.content.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    checkin.content,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+
+              const SizedBox(height: 16),
+
+              // Ảnh phụ
+              if (checkin.images.length > 1)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Ảnh khác",
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 100,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: checkin.images.length - 1,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (_, index) => ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            checkin.images[index + 1],
+                            width: 120,
+                            height: 100,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 20),
+            ],
+          );
+        }),
       ),
     );
   }

@@ -5,6 +5,7 @@ class CheckInModel {
   final String id;
   final String userId;
   final String spotId;
+  final String name;
   final String content;
   final String categoryId;
   final String categoryIcon;
@@ -15,11 +16,14 @@ class CheckInModel {
   final List<String> images;
   final DateTime createdAt;
   final CategoryModel? category;
+  final List<String> likes;
+  final List<String> dislikes;
 
   CheckInModel({
     required this.id,
     required this.userId,
     required this.spotId,
+    required this.name,
     required this.content,
     required this.categoryId,
     required this.categoryIcon,
@@ -30,6 +34,8 @@ class CheckInModel {
     required this.images,
     required this.createdAt,
     this.category,
+    this.likes = const [],
+    this.dislikes = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -37,6 +43,7 @@ class CheckInModel {
       "id": id,
       "userId": userId,
       "spotId": spotId,
+      "name": name,
       "content": content,
       "categoryId": categoryId,
       "categoryIcon": categoryIcon,
@@ -46,6 +53,8 @@ class CheckInModel {
       "longitude": longitude,
       "images": images,
       "createdAt": Timestamp.fromDate(createdAt),
+      "likes": likes,
+      "dislikes": dislikes,
     };
   }
 
@@ -65,6 +74,7 @@ class CheckInModel {
       id: json["id"] ?? "",
       userId: json["userId"] ?? "",
       spotId: json["spotId"] ?? "",
+      name: json["name"] ?? "",
       content: json["content"] ?? "",
       categoryId: json["categoryId"] ?? "",
       categoryIcon: json["categoryIcon"] ?? "",
@@ -74,6 +84,8 @@ class CheckInModel {
       longitude: (json["longitude"] as num).toDouble(),
       images: List<String>.from(json["images"] ?? []),
       createdAt: createdAt,
+      likes: List<String>.from(json["likes"] ?? []),
+      dislikes: List<String>.from(json["dislikes"] ?? []),
     );
   }
 }

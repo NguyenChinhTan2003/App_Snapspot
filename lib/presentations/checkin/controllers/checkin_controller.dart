@@ -27,6 +27,7 @@ class CheckinController extends GetxController {
 
   final RxList<File> images = <File>[].obs;
   final contentController = TextEditingController();
+  final spotNameController = TextEditingController();
 
   var categories = <CategoryModel>[].obs;
   var vibes = <VibeModel>[].obs;
@@ -130,17 +131,26 @@ class CheckinController extends GetxController {
     try {
       isLoading.value = true;
       final checkInId = const Uuid().v4();
+      final spotName = spotNameController.text.trim();
 
-      // Tìm Spot (gần toạ độ)
+      // Tìm Spot gần tọa độ
       SpotModel? spot = await _spotRepo.findSpot(latitude, longitude);
 
-      if (spot!.categoryId != selectedCategory.value!.id) {
-        debugPrint("🔹 Spot hiện tại không cùng category, tạo spot mới");
-        spot = null;
-      } else {
-        debugPrint("🔹 Spot found and same category: ${spot?.id}");
+      if (spot != null) {
+        // Nếu category khác, tạo Spot mới
+        if (spot.categoryId != selectedCategory.value!.id) {
+          spot = null;
+        } else {
+          // Nếu Spot chưa có tên và user nhập tên -> update
+          if ((spot.name == null || spot.name!.isEmpty) &&
+              spotName.isNotEmpty) {
+            await _spotRepo.updateSpotName(spot.id, spotName);
+            // Không thay đổi instance Spot, chỉ cập nhật Firestore
+          }
+        }
       }
-      // Nếu chưa có thì tạo Spot mới (tạo SpotModel rồi gọi repo.createSpot)
+
+      // Nếu chưa có Spot hoặc cần Spot mới
       if (spot == null) {
         final newSpot = SpotModel(
           id: const Uuid().v4(),
@@ -148,19 +158,19 @@ class CheckinController extends GetxController {
           longitude: longitude,
           categoryId: selectedCategory.value!.id,
           categoryIcon: selectedCategory.value!.iconUrl,
-          name: null, // hoặc truyền tên nếu bạn có
+          name: spotName.isNotEmpty ? spotName : "",
           createdAt: DateTime.now(),
         );
-
         await _spotRepo.createSpot(newSpot);
         spot = newSpot;
       }
 
-      //Tạo CheckIn
+      // Tạo CheckIn
       final checkIn = CheckInModel(
         id: checkInId,
         userId: userId!,
         spotId: spot.id,
+        name: spot.name ?? "",
         content: contentController.text,
         categoryId: selectedCategory.value!.id,
         categoryIcon: selectedCategory.value!.iconUrl,
@@ -172,15 +182,14 @@ class CheckinController extends GetxController {
         createdAt: DateTime.now(),
       );
 
-      // Lưu checkin (repo sẽ thêm field spotId nếu bạn dùng collection "checkins")
+      // Lưu CheckIn
       await _checkinRepo.createCheckIn(checkIn, spot.id);
 
+      // Trả result ngay lập tức trước khi upload ảnh
       final result = {
         ...checkIn.toJson(),
         "spotId": spot.id,
       };
-
-      // Quay về màn trước với result
       Get.back(result: result);
 
       // Upload ảnh song song
@@ -191,11 +200,7 @@ class CheckinController extends GetxController {
           final fileName = "img_$i.jpg";
           final uint8list = Uint8List.fromList(await file.toBytes());
           return await _checkinRepo.uploadImage(
-            userId!,
-            checkInId,
-            fileName,
-            uint8list,
-          );
+              userId!, checkInId, fileName, uint8list);
         })).then((urls) async {
           await _checkinRepo.updateCheckInImages(checkInId, urls);
           debugPrint("✅ Images uploaded for $checkInId");

@@ -6,6 +6,7 @@ import 'package:app_snapspot/data/models/vibe_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:app_snapspot/data/models/checkin_model.dart';
+import 'package:flutter/foundation.dart';
 
 class CheckInRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -50,6 +51,54 @@ class CheckInRepository {
       final lng = (data["longitude"] as num).toDouble();
       return lng >= minLng && lng <= maxLng;
     }).toList();
+  }
+
+  Future<void> toggleLike(String checkInId, String userId) async {
+    final docRef = _db.collection('checkins').doc(checkInId);
+
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (!snapshot.exists) return;
+
+      final data = snapshot.data()!;
+      final likes = List<String>.from(data['likes'] ?? []);
+      final dislikes = List<String>.from(data['dislikes'] ?? []);
+
+      if (likes.contains(userId)) {
+        transaction.update(docRef, {
+          "likes": FieldValue.arrayRemove([userId]),
+        });
+      } else {
+        transaction.update(docRef, {
+          "likes": FieldValue.arrayUnion([userId]),
+          "dislikes": FieldValue.arrayRemove([userId]),
+        });
+      }
+    });
+  }
+
+  Future<void> toggleDislike(String checkInId, String userId) async {
+    final docRef = _db.collection('checkins').doc(checkInId);
+
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (!snapshot.exists) return;
+
+      final data = snapshot.data()!;
+      final likes = List<String>.from(data['likes'] ?? []);
+      final dislikes = List<String>.from(data['dislikes'] ?? []);
+
+      if (dislikes.contains(userId)) {
+        transaction.update(docRef, {
+          "dislikes": FieldValue.arrayRemove([userId]),
+        });
+      } else {
+        transaction.update(docRef, {
+          "dislikes": FieldValue.arrayUnion([userId]),
+          "likes": FieldValue.arrayRemove([userId]),
+        });
+      }
+    });
   }
 
   Future<List<EnhancedCheckInModel>> getCheckInsBySpot(String spotId) async {

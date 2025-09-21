@@ -13,6 +13,12 @@ class SpotRepository {
     }
   }
 
+  Future<void> updateSpotName(String spotId, String name) async {
+    await _db.collection("spots").doc(spotId).update({
+      "name": name,
+    });
+  }
+
   /// Cập nhật Spot
   Future<void> updateSpot(SpotModel spot) async {
     try {

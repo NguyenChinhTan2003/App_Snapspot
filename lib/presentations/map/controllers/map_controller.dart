@@ -7,6 +7,7 @@ import 'package:app_snapspot/data/models/checkin_model.dart';
 import 'package:app_snapspot/data/models/spot_model.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
 import 'package:app_snapspot/domains/repositories/spot_repository.dart';
+import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
