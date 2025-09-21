@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class MapPage extends GetView<MapController> {
-  
   const MapPage({super.key});
 
   @override
@@ -43,7 +42,7 @@ class MapPage extends GetView<MapController> {
             onMapCreated: controller.onMapCreated,
             onCameraChangeListener: controller.onCameraChanged,
             cameraOptions: CameraOptions(
-              center: location,       
+              center: location,
               zoom: 15.0,
             ),
           ),

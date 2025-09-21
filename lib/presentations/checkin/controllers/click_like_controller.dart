@@ -7,8 +7,10 @@ class ClickLikeController extends GetxController {
   final CheckInModel checkin;
   final String? currentUserId;
 
-  var likes = <String>[].obs;
-  var dislikes = <String>[].obs;
+  var likesCount = 0.obs;
+  var dislikesCount = 0.obs;
+  var isLiked = false.obs;
+  var isDisliked = false.obs;
 
   ClickLikeController({
     required this.repo,
@@ -19,13 +21,30 @@ class ClickLikeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    likes.assignAll(checkin.likes ?? []);
-    dislikes.assignAll(checkin.dislikes ?? []);
+    // Load ban đầu từ model
+    likesCount.value = checkin.likesCount;
+    dislikesCount.value = checkin.dislikesCount;
+
+    // Đồng bộ trạng thái reaction của current user
+    if (currentUserId != null) {
+      _loadUserReaction();
+    }
   }
 
-  bool get isLiked => currentUserId != null && likes.contains(currentUserId);
-  bool get isDisliked =>
-      currentUserId != null && dislikes.contains(currentUserId);
+  /// Lấy reaction của currentUser trong checkin này
+  Future<void> _loadUserReaction() async {
+    final reaction = await repo.getUserReaction(checkin.id, currentUserId!);
+    if (reaction == 'like') {
+      isLiked.value = true;
+      isDisliked.value = false;
+    } else if (reaction == 'dislike') {
+      isLiked.value = false;
+      isDisliked.value = true;
+    } else {
+      isLiked.value = false;
+      isDisliked.value = false;
+    }
+  }
 
   Future<void> toggleLike() async {
     if (currentUserId == null) {
@@ -33,14 +52,13 @@ class ClickLikeController extends GetxController {
       return;
     }
 
-    await repo.toggleLike(checkin.id, currentUserId!);
-    // cập nhật state local cho mượt
-    if (isLiked) {
-      likes.remove(currentUserId);
-    } else {
-      likes.add(currentUserId!);
-      dislikes.remove(currentUserId);
-    }
+    final result =
+        await repo.toggleReaction(checkin.id, currentUserId!, 'like');
+
+    likesCount.value = result['likesCount'];
+    dislikesCount.value = result['dislikesCount'];
+    isLiked.value = result['isLiked'];
+    isDisliked.value = result['isDisliked'];
   }
 
   Future<void> toggleDislike() async {
@@ -49,13 +67,12 @@ class ClickLikeController extends GetxController {
       return;
     }
 
-    await repo.toggleDislike(checkin.id, currentUserId!);
-    // cập nhật state local cho mượt
-    if (isDisliked) {
-      dislikes.remove(currentUserId);
-    } else {
-      dislikes.add(currentUserId!);
-      likes.remove(currentUserId);
-    }
+    final result =
+        await repo.toggleReaction(checkin.id, currentUserId!, 'dislike');
+
+    likesCount.value = result['likesCount'];
+    dislikesCount.value = result['dislikesCount'];
+    isLiked.value = result['isLiked'];
+    isDisliked.value = result['isDisliked'];
   }
 }

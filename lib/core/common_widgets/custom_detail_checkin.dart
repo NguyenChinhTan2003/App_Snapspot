@@ -160,8 +160,8 @@ class CheckInBottomSheet extends StatelessWidget {
                   ),
                   const Spacer(),
                   Obx(() {
-                    final isLiked = likeController.isLiked;
-                    final isDisliked = likeController.isDisliked;
+                    final isLiked = likeController.likesCount > 0;
+                    final isDisliked = likeController.dislikesCount > 0;
 
                     return Row(
                       children: [
@@ -170,14 +170,14 @@ class CheckInBottomSheet extends StatelessWidget {
                               color: isLiked ? Colors.blue : Colors.grey),
                           onPressed: () => likeController.toggleLike(),
                         ),
-                        Text("${likeController.likes.length}"),
+                        Text("${likeController.likesCount}"),
                         const SizedBox(width: 8),
                         IconButton(
                           icon: Icon(Icons.thumb_down,
                               color: isDisliked ? Colors.red : Colors.grey),
                           onPressed: () => likeController.toggleDislike(),
                         ),
-                        Text("${likeController.dislikes.length}"),
+                        Text("${likeController.dislikesCount}"),
                       ],
                     );
                   }),

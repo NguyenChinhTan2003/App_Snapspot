@@ -126,7 +126,7 @@ class MapController extends GetxController {
       isCompassVisible.value = true;
 
       await mapboxMap?.setCamera(
-        CameraOptions(center: point, zoom: 16.0),
+        CameraOptions(center: point, zoom: 17.0),
       );
     } catch (e) {
       debugPrint("❌ Error getting current location: $e");

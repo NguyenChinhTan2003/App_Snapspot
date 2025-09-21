@@ -115,11 +115,11 @@ class LocationCheckInsController extends GetxController {
         break;
       case CheckInSortOption.mostLiked:
         filtered.sort(
-            (a, b) => b.checkIn.likes.length.compareTo(a.checkIn.likes.length));
+            (a, b) => b.checkIn.likesCount.compareTo(a.checkIn.likesCount));
         break;
       case CheckInSortOption.mostDisliked:
         filtered.sort((a, b) =>
-            b.checkIn.dislikes.length.compareTo(a.checkIn.dislikes.length));
+            b.checkIn.dislikesCount.compareTo(a.checkIn.dislikesCount));
         break;
     }
 

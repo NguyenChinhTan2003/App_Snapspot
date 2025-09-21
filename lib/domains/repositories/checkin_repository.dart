@@ -16,7 +16,241 @@ class CheckInRepository {
   Future<void> createCheckIn(CheckInModel checkIn, String spotId) async {
     final data = checkIn.toJson();
     data["spotId"] = spotId;
+    data["likesCount"] = 0;
+    data["dislikesCount"] = 0;
     await _db.collection("checkins").doc(checkIn.id).set(data);
+  }
+
+  Future<Map<String, dynamic>> toggleLike(
+      String checkinId, String userId) async {
+    final checkinRef = getCheckinRef(checkinId);
+    final reactionRef = getReactionRef(checkinId, userId);
+
+    return _db.runTransaction((transaction) async {
+      final checkinSnap = await transaction.get(checkinRef);
+      if (!checkinSnap.exists) {
+        throw Exception("Checkin not found");
+      }
+
+      final reactionSnap = await transaction.get(reactionRef);
+
+      int likesCount = checkinSnap['likesCount'] ?? 0;
+      int dislikesCount = checkinSnap['dislikesCount'] ?? 0;
+      String? newType;
+
+      if (!reactionSnap.exists) {
+        // chưa có -> tạo like
+        transaction.set(reactionRef, {'type': 'like'});
+        likesCount++;
+        newType = "like";
+      } else {
+        final currentType = reactionSnap['type'];
+        if (currentType == 'like') {
+          // đã like -> bỏ like
+          transaction.delete(reactionRef);
+          likesCount--;
+          newType = null;
+        } else if (currentType == 'dislike') {
+          // đang dislike -> chuyển thành like
+          transaction.update(reactionRef, {'type': 'like'});
+          dislikesCount--;
+          likesCount++;
+          newType = "like";
+        }
+      }
+
+      transaction.update(checkinRef, {
+        'likesCount': likesCount,
+        'dislikesCount': dislikesCount,
+      });
+
+      return {
+        'likesCount': likesCount,
+        'dislikesCount': dislikesCount,
+        'reaction': newType, // null, like, dislike
+      };
+    });
+  }
+
+  Future<Map<String, dynamic>> toggleDislike(
+      String checkinId, String userId) async {
+    final checkinRef = getCheckinRef(checkinId);
+    final reactionRef = getReactionRef(checkinId, userId);
+
+    return _db.runTransaction((transaction) async {
+      final checkinSnap = await transaction.get(checkinRef);
+      if (!checkinSnap.exists) {
+        throw Exception("Checkin not found");
+      }
+
+      final reactionSnap = await transaction.get(reactionRef);
+
+      int likesCount = checkinSnap['likesCount'] ?? 0;
+      int dislikesCount = checkinSnap['dislikesCount'] ?? 0;
+      String? newType;
+
+      if (!reactionSnap.exists) {
+        // chưa có -> tạo dislike
+        transaction.set(reactionRef, {'type': 'dislike'});
+        dislikesCount++;
+        newType = "dislike";
+      } else {
+        final currentType = reactionSnap['type'];
+        if (currentType == 'dislike') {
+          // đã dislike -> bỏ dislike
+          transaction.delete(reactionRef);
+          dislikesCount--;
+          newType = null;
+        } else if (currentType == 'like') {
+          // đang like -> chuyển thành dislike
+          transaction.update(reactionRef, {'type': 'dislike'});
+          likesCount--;
+          dislikesCount++;
+          newType = "dislike";
+        }
+      }
+
+      transaction.update(checkinRef, {
+        'likesCount': likesCount,
+        'dislikesCount': dislikesCount,
+      });
+
+      return {
+        'likesCount': likesCount,
+        'dislikesCount': dislikesCount,
+        'reaction': newType,
+      };
+    });
+  }
+
+  Future<String?> getUserReaction(String checkinId, String userId) async {
+    final doc = await _db
+        .collection('checkins')
+        .doc(checkinId)
+        .collection('reactions')
+        .doc(userId)
+        .get();
+
+    if (doc.exists) {
+      return doc['type'] as String;
+    }
+    return null;
+  }
+
+  /// Toggle reaction (like/dislike)
+  Future<Map<String, dynamic>> toggleReaction(
+      String checkinId, String userId, String type) async {
+    final checkinRef = _db.collection('checkins').doc(checkinId);
+    final reactionRef = checkinRef.collection('reactions').doc(userId);
+
+    return _db.runTransaction((transaction) async {
+      final checkinSnap = await transaction.get(checkinRef);
+      final reactionSnap = await transaction.get(reactionRef);
+
+      int likesCount = checkinSnap['likesCount'] ?? 0;
+      int dislikesCount = checkinSnap['dislikesCount'] ?? 0;
+
+      String? currentType;
+      if (reactionSnap.exists) {
+        currentType = reactionSnap['type'] as String;
+      }
+
+      // Nếu user đã chọn cùng reaction → xóa reaction
+      if (currentType == type) {
+        transaction.delete(reactionRef);
+        if (type == 'like')
+          likesCount--;
+        else
+          dislikesCount--;
+        transaction.update(checkinRef, {
+          'likesCount': likesCount,
+          'dislikesCount': dislikesCount,
+        });
+
+        return {
+          'likesCount': likesCount,
+          'dislikesCount': dislikesCount,
+          'isLiked': false,
+          'isDisliked': false,
+        };
+      }
+
+      // Nếu user chuyển từ like -> dislike hoặc ngược lại
+      if (currentType != null && currentType != type) {
+        if (currentType == 'like') likesCount--;
+        if (currentType == 'dislike') dislikesCount--;
+
+        if (type == 'like') likesCount++;
+        if (type == 'dislike') dislikesCount++;
+
+        transaction.update(reactionRef, {'type': type});
+        transaction.update(checkinRef, {
+          'likesCount': likesCount,
+          'dislikesCount': dislikesCount,
+        });
+
+        return {
+          'likesCount': likesCount,
+          'dislikesCount': dislikesCount,
+          'isLiked': type == 'like',
+          'isDisliked': type == 'dislike',
+        };
+      }
+
+      // Nếu user chưa reaction → tạo mới
+      if (currentType == null) {
+        if (type == 'like') likesCount++;
+        if (type == 'dislike') dislikesCount++;
+
+        transaction.set(reactionRef, {'type': type});
+        transaction.update(checkinRef, {
+          'likesCount': likesCount,
+          'dislikesCount': dislikesCount,
+        });
+
+        return {
+          'likesCount': likesCount,
+          'dislikesCount': dislikesCount,
+          'isLiked': type == 'like',
+          'isDisliked': type == 'dislike',
+        };
+      }
+
+      // fallback
+      return {
+        'likesCount': likesCount,
+        'dislikesCount': dislikesCount,
+        'isLiked': currentType == 'like',
+        'isDisliked': currentType == 'dislike',
+      };
+    });
+  }
+
+  /// Lấy danh sách userId đã like/dislike
+  Future<Map<String, List<String>>> getReactions(String checkInId) async {
+    final snapshot = await _db
+        .collection("checkins")
+        .doc(checkInId)
+        .collection("reactions")
+        .get();
+
+    final likes = <String>[];
+    final dislikes = <String>[];
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final type = data['type'] as String?;
+      if (type == "like") {
+        likes.add(doc.id);
+      } else if (type == "dislike") {
+        dislikes.add(doc.id);
+      }
+    }
+
+    return {
+      "likes": likes,
+      "dislikes": dislikes,
+    };
   }
 
   /// Lấy tất cả checkins theo Spot
@@ -51,54 +285,6 @@ class CheckInRepository {
       final lng = (data["longitude"] as num).toDouble();
       return lng >= minLng && lng <= maxLng;
     }).toList();
-  }
-
-  Future<void> toggleLike(String checkInId, String userId) async {
-    final docRef = _db.collection('checkins').doc(checkInId);
-
-    await _db.runTransaction((transaction) async {
-      final snapshot = await transaction.get(docRef);
-      if (!snapshot.exists) return;
-
-      final data = snapshot.data()!;
-      final likes = List<String>.from(data['likes'] ?? []);
-      final dislikes = List<String>.from(data['dislikes'] ?? []);
-
-      if (likes.contains(userId)) {
-        transaction.update(docRef, {
-          "likes": FieldValue.arrayRemove([userId]),
-        });
-      } else {
-        transaction.update(docRef, {
-          "likes": FieldValue.arrayUnion([userId]),
-          "dislikes": FieldValue.arrayRemove([userId]),
-        });
-      }
-    });
-  }
-
-  Future<void> toggleDislike(String checkInId, String userId) async {
-    final docRef = _db.collection('checkins').doc(checkInId);
-
-    await _db.runTransaction((transaction) async {
-      final snapshot = await transaction.get(docRef);
-      if (!snapshot.exists) return;
-
-      final data = snapshot.data()!;
-      final likes = List<String>.from(data['likes'] ?? []);
-      final dislikes = List<String>.from(data['dislikes'] ?? []);
-
-      if (dislikes.contains(userId)) {
-        transaction.update(docRef, {
-          "dislikes": FieldValue.arrayRemove([userId]),
-        });
-      } else {
-        transaction.update(docRef, {
-          "dislikes": FieldValue.arrayUnion([userId]),
-          "likes": FieldValue.arrayRemove([userId]),
-        });
-      }
-    });
   }
 
   Future<List<EnhancedCheckInModel>> getCheckInsBySpot(String spotId) async {
@@ -177,5 +363,14 @@ class CheckInRepository {
     final snapshot = await _db.collection("checkins").doc(checkInId).get();
     if (!snapshot.exists) return null;
     return CheckInModel.fromJson(snapshot.data()!);
+  }
+
+  DocumentReference<Map<String, dynamic>> getCheckinRef(String checkinId) {
+    return _db.collection('checkins').doc(checkinId);
+  }
+
+  DocumentReference<Map<String, dynamic>> getReactionRef(
+      String checkinId, String userId) {
+    return getCheckinRef(checkinId).collection('reactions').doc(userId);
   }
 }
