@@ -1,14 +1,13 @@
 import 'dart:async';
-import 'package:app_snapspot/core/common_widgets/custom_detail_checkin.dart';
 import 'package:app_snapspot/core/common_widgets/custom_location_checkin.dart';
 import 'package:app_snapspot/core/common_widgets/custom_marker_helper.dart';
 import 'package:app_snapspot/core/common_widgets/custom_point_annotation_click_listener.dart';
-import 'package:app_snapspot/data/models/checkin_model.dart';
 import 'package:app_snapspot/data/models/spot_model.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
 import 'package:app_snapspot/domains/repositories/spot_repository.dart';
-import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
+import 'package:app_snapspot/presentations/checkin/controllers/locationCheckins_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -288,9 +287,27 @@ class MapController extends GetxController {
       }
 
       final spot = SpotModel.fromJson(spotDoc.data()!..['id'] = spotDoc.id);
+      final user = FirebaseAuth.instance.currentUser;
+      final currentUserId = user?.uid;
 
       await Get.bottomSheet(
-        LocationCheckInsBottomSheet(spot: spot),
+        Builder(
+          builder: (_) {
+            Get.put<LocationCheckInsController>(
+              LocationCheckInsController(
+                CheckInRepository(),
+                spot.id,
+                currentUserId!,
+              ),
+              tag: spot.id,
+            );
+
+            return LocationCheckInsBottomSheet(
+              spot: spot,
+              currentUserId: currentUserId!,
+            );
+          },
+        ),
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
       );

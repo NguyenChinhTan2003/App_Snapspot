@@ -18,7 +18,7 @@ class CheckInBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final authController = Get.find<AuthController>();
     final controller = Get.put(
-      CheckInDetailController(checkin.userId),
+      CheckInDetailController(checkin.userId, checkin),
       tag: checkin.id,
     );
 
@@ -159,25 +159,39 @@ class CheckInBottomSheet extends StatelessWidget {
                     ],
                   ),
                   const Spacer(),
+
+                  // Like/Dislike buttons
                   Obx(() {
-                    final isLiked = likeController.likesCount > 0;
-                    final isDisliked = likeController.dislikesCount > 0;
+                    final likedColor =
+                        (likeController.hasLoadedUserReaction.value &&
+                                likeController.isLiked.value)
+                            ? Colors.blue
+                            : Colors.grey;
+                    final dislikedColor =
+                        (likeController.hasLoadedUserReaction.value &&
+                                likeController.isDisliked.value)
+                            ? Colors.red
+                            : Colors.grey;
 
                     return Row(
                       children: [
                         IconButton(
-                          icon: Icon(Icons.thumb_up,
-                              color: isLiked ? Colors.blue : Colors.grey),
+                          icon: Icon(
+                            Icons.thumb_up,
+                            color: likedColor,
+                          ),
                           onPressed: () => likeController.toggleLike(),
                         ),
-                        Text("${likeController.likesCount}"),
+                        Text("${likeController.likesCount.value}"),
                         const SizedBox(width: 8),
                         IconButton(
-                          icon: Icon(Icons.thumb_down,
-                              color: isDisliked ? Colors.red : Colors.grey),
+                          icon: Icon(
+                            Icons.thumb_down,
+                            color: dislikedColor,
+                          ),
                           onPressed: () => likeController.toggleDislike(),
                         ),
-                        Text("${likeController.dislikesCount}"),
+                        Text("${likeController.dislikesCount.value}"),
                       ],
                     );
                   }),
@@ -200,14 +214,14 @@ class CheckInBottomSheet extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              // Vị trí
+              // Địa chỉ từ MapboxService
               Row(
                 children: [
                   const Icon(Icons.place, color: Colors.red, size: 20),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      "${checkin.latitude.toStringAsFixed(5)}, ${checkin.longitude.toStringAsFixed(5)}",
+                      controller.address.value,
                       style: Theme.of(context)
                           .textTheme
                           .bodyMedium

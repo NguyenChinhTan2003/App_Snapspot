@@ -12,9 +12,21 @@ class CheckinBinding extends Bindings {
       () => CheckinController(),
     );
     Get.lazyPut<NavigationController>(() => NavigationController());
-    Get.lazyPut<LocationCheckInsController>(() => LocationCheckInsController(
-        CheckInRepository(), Get.arguments['spotId']));
-    Get.lazyPut<CheckInDetailController>(() => CheckInDetailController(
-        Get.arguments['userId'] ?? Get.arguments['checkin'].userId));
+
+    if (Get.arguments?['spotId'] != null && Get.arguments?['userId'] != null) {
+      Get.lazyPut<LocationCheckInsController>(
+        () => LocationCheckInsController(
+          CheckInRepository(),
+          Get.arguments!['spotId'],
+          Get.arguments!['userId'],
+        ),
+        tag: Get.arguments!['spotId'],
+      );
+    }
+
+    if (Get.arguments?['checkin'] != null && Get.arguments?['userId'] != null) {
+      Get.lazyPut<CheckInDetailController>(() => CheckInDetailController(
+          Get.arguments!['userId'], Get.arguments!['checkin']));
+    }
   }
 }

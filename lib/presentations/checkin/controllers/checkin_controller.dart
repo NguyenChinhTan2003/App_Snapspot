@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:app_snapspot/domains/repositories/category_repository.dart';
 import 'package:app_snapspot/domains/repositories/vibe_repository.dart';
 import 'package:app_snapspot/data/models/category_model.dart';

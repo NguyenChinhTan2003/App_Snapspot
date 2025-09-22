@@ -372,7 +372,7 @@ class ProfileView extends StatelessWidget {
                                   Get.snackbar(
                                     'Thông báo',
                                     'Tính năng đang phát triển',
-                                    snackPosition: SnackPosition.BOTTOM,
+                                    snackPosition: SnackPosition.TOP,
                                     backgroundColor: Colors.grey[800],
                                     colorText: Colors.white,
                                   );

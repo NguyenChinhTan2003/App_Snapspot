@@ -11,6 +11,7 @@ class ClickLikeController extends GetxController {
   var dislikesCount = 0.obs;
   var isLiked = false.obs;
   var isDisliked = false.obs;
+  var hasLoadedUserReaction = false.obs;
 
   ClickLikeController({
     required this.repo,
@@ -44,6 +45,7 @@ class ClickLikeController extends GetxController {
       isLiked.value = false;
       isDisliked.value = false;
     }
+    hasLoadedUserReaction.value = true;
   }
 
   Future<void> toggleLike() async {

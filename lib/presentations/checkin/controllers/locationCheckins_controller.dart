@@ -1,6 +1,7 @@
 // ignore: file_names
 import 'package:app_snapspot/data/models/enhanced_checkin_model.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 enum CheckInSortOption { newest, oldest, mostLiked, mostDisliked }
@@ -12,8 +13,9 @@ enum CheckInVibeOption { all, thugian, vuive, yeuduong, bucxuc }
 class LocationCheckInsController extends GetxController {
   final CheckInRepository repo;
   final String spotId;
+  final String currentUserId;
 
-  LocationCheckInsController(this.repo, this.spotId);
+  LocationCheckInsController(this.repo, this.spotId, this.currentUserId);
 
   var isLoading = true.obs;
   var error = RxnString();
@@ -43,6 +45,8 @@ class LocationCheckInsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    debugPrint(
+        "👉 LocationCheckInsController created: spotId=$spotId, currentUserId=$currentUserId");
     fetchCheckIns();
   }
 
