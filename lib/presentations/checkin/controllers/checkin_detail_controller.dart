@@ -1,5 +1,6 @@
 import 'package:app_snapspot/applications/services/mapbox_service.dart';
 import 'package:app_snapspot/data/models/checkin_model.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:app_snapspot/data/models/user_profile_model.dart';
 import 'package:app_snapspot/domains/repositories/profile_repository.dart';
@@ -13,6 +14,7 @@ class CheckInDetailController extends GetxController {
   var address = RxString("Đang tải địa chỉ...");
   var isLoading = true.obs;
   var error = RxnString();
+  var copied = false.obs;
 
   CheckInDetailController(this.userId, this.checkin);
 
@@ -43,5 +45,15 @@ class CheckInDetailController extends GetxController {
     } catch (e) {
       address.value = "Lỗi lấy địa chỉ: $e";
     }
+  }
+
+  Future<void> copyAddress() async {
+    await Clipboard.setData(ClipboardData(text: address.value));
+    copied.value = true;
+
+    // tự reset sau 2s
+    Future.delayed(const Duration(seconds: 2), () {
+      copied.value = false;
+    });
   }
 }

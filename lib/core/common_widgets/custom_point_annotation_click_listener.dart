@@ -16,9 +16,9 @@ class CustomPointAnnotationClickListener
     final spotId = annotationIdToSpotId[annotation.id];
     if (spotId != null) {
       if (kDebugMode) {
-        print("👉 Marker tapped: $spotId");
+        print("Marker tapped: $spotId");
       }
-      await onMarkerTapped(spotId); // gọi callback với SpotId
+      await onMarkerTapped(spotId);
     }
     return true;
   }

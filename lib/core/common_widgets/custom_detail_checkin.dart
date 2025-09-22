@@ -1,7 +1,9 @@
+import 'package:app_snapspot/core/common_widgets/custom_expandable_text.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
 import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:app_snapspot/data/models/checkin_model.dart';
@@ -214,22 +216,40 @@ class CheckInBottomSheet extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              // Địa chỉ từ MapboxService
-              Row(
-                children: [
-                  const Icon(Icons.place, color: Colors.red, size: 20),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      controller.address.value,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: Colors.black54),
+              // Địa chỉ + Copy button
+              Obx(() {
+                return Row(
+                  children: [
+                    const Icon(Icons.place, color: Colors.red, size: 20),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        controller.address.value,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: Colors.black54),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    IconButton(
+                      icon: Icon(
+                        controller.copied.value ? Icons.check : Icons.copy,
+                        size: 18,
+                        color: controller.copied.value
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
+                      onPressed: () {
+                        controller.copyAddress();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Đã copy địa chỉ")),
+                        );
+                      },
+                    ),
+                  ],
+                );
+              }),
 
               const SizedBox(height: 12),
 
@@ -242,9 +262,9 @@ class CheckInBottomSheet extends StatelessWidget {
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    checkin.content,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  child: ExpandableText(
+                    text: checkin.content,
+                    trimLines: 2,
                   ),
                 ),
 

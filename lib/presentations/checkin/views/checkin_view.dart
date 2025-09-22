@@ -37,8 +37,8 @@ class CheckinView extends GetView<CheckinController> {
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 inputFormatters: [
-                  // Chỉ cho phép chữ cái, số và khoảng trắng
-                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
+                  FilteringTextInputFormatter.allow(
+                      RegExp(r'[\p{L}0-9\s]', unicode: true)),
                 ],
               ),
               const SizedBox(height: 10),
