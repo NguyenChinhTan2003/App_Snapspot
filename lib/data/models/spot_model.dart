@@ -8,6 +8,7 @@ class SpotModel {
   final String categoryId;
   final String categoryIcon;
   final DateTime createdAt;
+  final List<String> keywords;
 
   SpotModel({
     required this.id,
@@ -17,6 +18,7 @@ class SpotModel {
     required this.categoryId,
     required this.categoryIcon,
     required this.createdAt,
+    this.keywords = const [],
   });
 
   SpotModel copyWith({
@@ -27,6 +29,7 @@ class SpotModel {
     String? categoryId,
     String? categoryIcon,
     DateTime? createdAt,
+    List<String>? keywords,
   }) {
     return SpotModel(
       id: id ?? this.id,
@@ -36,6 +39,7 @@ class SpotModel {
       categoryId: categoryId ?? this.categoryId,
       categoryIcon: categoryIcon ?? this.categoryIcon,
       createdAt: createdAt ?? this.createdAt,
+      keywords: keywords ?? this.keywords,
     );
   }
 
@@ -48,6 +52,7 @@ class SpotModel {
       'categoryId': categoryId,
       'categoryIcon': categoryIcon,
       'createdAt': createdAt,
+      'keywords': keywords,
     };
   }
 
@@ -70,6 +75,7 @@ class SpotModel {
       categoryId: json['categoryId'] ?? '',
       categoryIcon: json['categoryIcon'] ?? '',
       createdAt: createdAt,
+      keywords: List<String>.from(json['keywords'] ?? []),
     );
   }
 }

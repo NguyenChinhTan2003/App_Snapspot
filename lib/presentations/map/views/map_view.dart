@@ -1,4 +1,5 @@
 import 'package:app_snapspot/core/common_widgets/custom_crosshair.dart';
+import 'package:app_snapspot/presentations/map/views/custom_search_filter_bar.dart';
 import 'package:app_snapspot/presentations/map/controllers/map_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -44,6 +45,20 @@ class MapPage extends GetView<MapController> {
             cameraOptions: CameraOptions(
               center: location,
               zoom: 15.0,
+            ),
+          ),
+
+          // Thanh search + filter categories
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 0,
+            right: 0,
+            child: CustomSearchFilterBar(
+              onSearch: (searchText, categoryId) {
+                controller.updateSearchQuery(searchText);
+                controller
+                    .updateCategory(categoryId.isNotEmpty ? categoryId : null);
+              },
             ),
           ),
 

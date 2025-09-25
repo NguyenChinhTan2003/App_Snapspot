@@ -7,7 +7,11 @@ class SpotRepository {
   /// Tạo mới Spot
   Future<void> createSpot(SpotModel spot) async {
     try {
-      await _db.collection("spots").doc(spot.id).set(spot.toJson());
+      final data = spot.toJson();
+      if (spot.name != null && spot.name!.isNotEmpty) {
+        data['keywords'] = _generateKeywords(spot.name!);
+      }
+      await _db.collection("spots").doc(spot.id).set(data);
     } catch (e) {
       rethrow;
     }
@@ -112,5 +116,61 @@ class SpotRepository {
     } catch (e) {
       rethrow;
     }
+  }
+
+  /// Lấy Spot trong bounding box + filter
+  Future<List<SpotModel>> getSpotsInBoundingBoxFiltered({
+    required double minLat,
+    required double maxLat,
+    required double minLng,
+    required double maxLng,
+    String? category,
+    String? searchQuery,
+  }) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection("spots")
+        .where("latitude", isGreaterThanOrEqualTo: minLat)
+        .where("latitude", isLessThanOrEqualTo: maxLat)
+        .get();
+
+    final spots = snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return SpotModel.fromJson(data);
+    }).where((spot) {
+      final matchLng = spot.longitude >= minLng && spot.longitude <= maxLng;
+
+      final matchCategory =
+          category == null || category.isEmpty || spot.categoryId == category;
+
+      final matchSearch = searchQuery == null ||
+          searchQuery.isEmpty ||
+          (spot.name?.toLowerCase().contains(searchQuery.toLowerCase()) ??
+              false);
+
+      return matchLng && matchCategory && matchSearch;
+    }).toList();
+
+    return spots;
+  }
+
+  List<String> _generateKeywords(String name) {
+    final lower = name.toLowerCase().trim();
+    final words = lower.split(RegExp(r"\s+"));
+    final keywords = <String>[];
+
+    // mỗi từ
+    for (final word in words) {
+      for (int i = 1; i <= word.length; i++) {
+        keywords.add(word.substring(0, i));
+      }
+    }
+
+    // toàn bộ cụm từ
+    for (int i = 1; i <= lower.length; i++) {
+      keywords.add(lower.substring(0, i));
+    }
+
+    return keywords.toSet().toList();
   }
 }

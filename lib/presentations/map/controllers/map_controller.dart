@@ -25,21 +25,22 @@ class MapController extends GetxController {
   final heading = 0.0.obs;
 
   var isCompassVisible = false.obs;
-
   MapboxMap? mapboxMap;
-
   mapbox.PointAnnotationManager? _annotationManager;
 
-  /// cache icon marker theo category để không phải render lại nhiều lần
+  /// Cache markers
   final Map<String, Uint8List> _markerCache = {};
   final Map<String, PointAnnotation> _markerCacheById = {};
-
-  /// mapping annotationId -> checkInId
-  final Map<String, String> _annotationIdToCheckInId = {};
+  final Map<String, String> _annotationIdToSpotId = {};
 
   var mapMode = MapMode.normal.obs;
   var isAddButtonVisible = true.obs;
   var isBottomSheetOpen = false.obs;
+
+  /// Filter/Search
+  var selectedCategory = Rxn<String>();
+  var searchQuery = "".obs;
+  var isLoading = false.obs;
 
   @override
   void onInit() {
@@ -56,13 +57,10 @@ class MapController extends GetxController {
     try {
       const platform = MethodChannel('com.example.app_snapspot/mapbox');
       final token = await platform.invokeMethod<String>('getMapboxToken');
-
       if (token != null && token.isNotEmpty) {
         MapboxOptions.setAccessToken(token);
         mapboxToken.value = token;
         debugPrint("✅ Token loaded");
-      } else {
-        debugPrint("⚠️ Token is null or empty");
       }
     } catch (e) {
       debugPrint("❌ Error loading token: $e");
@@ -71,31 +69,30 @@ class MapController extends GetxController {
 
   void onMapCreated(MapboxMap map) async {
     mapboxMap = map;
-    debugPrint("✅ Mapbox map created");
+    debugPrint("✅ Map created");
 
-    mapboxMap?.location.updateSettings(LocationComponentSettings(
-      enabled: true,
-      pulsingEnabled: true,
-      puckBearing: PuckBearing.HEADING,
-      puckBearingEnabled: true,
-    ));
+    mapboxMap?.location.updateSettings(
+      LocationComponentSettings(
+        enabled: true,
+        pulsingEnabled: true,
+        puckBearing: PuckBearing.HEADING,
+        puckBearingEnabled: true,
+      ),
+    );
 
-    // Tạo annotation manager 1 lần, dùng lại khi tạo marker
     _annotationManager =
         await mapboxMap!.annotations.createPointAnnotationManager();
 
-    // Gắn custom listener
-    // ignore: deprecated_member_use
     _annotationManager?.addOnPointAnnotationClickListener(
       CustomPointAnnotationClickListener(
-        annotationIdToSpotId: _annotationIdToCheckInId,
+        annotationIdToSpotId: _annotationIdToSpotId,
         onMarkerTapped: onMarkerTapped,
       ),
     );
 
     goToCurrentLocation();
 
-    // Nếu có checkin mới trả về từ màn checkin thì add marker đó
+    // nếu có spot từ màn checkin trả về
     final args = Get.arguments;
     if (args != null && args is SpotModel) {
       addSpotMarker(args);
@@ -113,7 +110,6 @@ class MapController extends GetxController {
       if (permission == geo.LocationPermission.deniedForever) return;
 
       geo.Position position = await geo.Geolocator.getCurrentPosition(
-        // ignore: deprecated_member_use
         desiredAccuracy: geo.LocationAccuracy.high,
       );
 
@@ -132,6 +128,7 @@ class MapController extends GetxController {
     }
   }
 
+  // Selection Mode
   void startLocationSelection() {
     mapMode.value = MapMode.selecting;
     isAddButtonVisible.value = false;
@@ -148,8 +145,6 @@ class MapController extends GetxController {
       if (cameraState != null) {
         final center = cameraState.center;
         selectedCoordinates.value = center;
-        debugPrint(
-            "✅ Center coordinates: ${center.coordinates.lat}, ${center.coordinates.lng}");
 
         final result = await Get.toNamed('/checkin', arguments: {
           'coordinates': center,
@@ -158,7 +153,6 @@ class MapController extends GetxController {
         if (result != null && result is SpotModel) {
           addSpotMarker(result);
         }
-
         cancelLocationSelection();
       }
     } catch (e) {
@@ -166,28 +160,18 @@ class MapController extends GetxController {
     }
   }
 
-  /// Lấy icon marker có cache
+  // Marker utils
   Future<Uint8List> getMarkerIcon(String icon) async {
-    if (_markerCache.containsKey(icon)) {
-      return _markerCache[icon]!;
-    }
-    final markerBytes = await CustomMarkerHelper.createGoogleStyleMarker(
-      icon,
-      size: 160,
-    );
+    if (_markerCache.containsKey(icon)) return _markerCache[icon]!;
+    final markerBytes =
+        await CustomMarkerHelper.createGoogleStyleMarker(icon, size: 160);
     _markerCache[icon] = markerBytes;
     return markerBytes;
   }
 
-  /// Thêm marker mới ngay sau khi checkin thành công
   Future<void> addSpotMarker(SpotModel spot) async {
     if (mapboxMap == null) return;
-
-    if (_markerCacheById.containsKey(spot.id)) {
-      debugPrint("⚠️ Marker ${spot.id} đã tồn tại trong cache, bỏ qua");
-      return;
-    }
-
+    if (_markerCacheById.containsKey(spot.id)) return;
     if (spot.categoryIcon.isEmpty) return;
 
     final markerBytes = await getMarkerIcon(spot.categoryIcon);
@@ -203,74 +187,96 @@ class MapController extends GetxController {
     );
 
     _markerCacheById[spot.id] = annotation;
-    _annotationIdToCheckInId[annotation.id] = spot.id;
+    _annotationIdToSpotId[annotation.id] = spot.id;
   }
 
-  // Lắng nghe sự kiện camera thay đổi
+  // Filter + Search
+  void updateCategory(String? category) {
+    selectedCategory.value = category;
+    reloadSpotsInView();
+  }
+
+  void updateSearchQuery(String query) {
+    searchQuery.value = query;
+    reloadSpotsInView();
+  }
+
+  // Loading Spots by Bounding Box
   void onCameraChanged(CameraChangedEventData eventData) async {
-    try {
+    // Chỉ load khi có filter hoặc search
+    if (selectedCategory.value != null || searchQuery.value.isNotEmpty) {
       final cameraState = await mapboxMap?.getCameraState();
       if (cameraState == null) return;
 
       final bounds = await mapboxMap?.coordinateBoundsForCamera(
         cameraState.toCameraOptions(),
       );
-
       if (bounds != null) {
         await loadMarkersInView(bounds);
       }
-    } catch (e) {
-      debugPrint("❌ Error in onCameraChanged: $e");
     }
   }
 
-  /// Load marker theo view camera
+  Future<void> reloadSpotsInView() async {
+    final cameraState = await mapboxMap?.getCameraState();
+    if (cameraState == null) return;
+
+    final bounds = await mapboxMap?.coordinateBoundsForCamera(
+      cameraState.toCameraOptions(),
+    );
+    if (bounds != null) {
+      // Xóa toàn bộ marker cũ trước khi load lại
+      await clearAllMarkers();
+
+      await loadMarkersInView(bounds);
+    }
+  }
+
+  Future<void> clearAllMarkers() async {
+    if (_annotationManager == null) return;
+
+    // Xóa annotations khỏi map
+    await _annotationManager!.deleteAll();
+
+    // Clear cache
+    _markerCacheById.clear();
+    _annotationIdToSpotId.clear();
+  }
+
   Future<void> loadMarkersInView(CoordinateBounds bounds) async {
     if (mapboxMap == null) return;
+    isLoading.value = true;
 
     try {
       final spotRepo = SpotRepository();
-
-      // Lấy Spot theo bounding box
-      final spots = await spotRepo.getSpotsInBoundingBox(
+      final spots = await spotRepo.getSpotsInBoundingBoxFiltered(
         minLat: bounds.southwest.coordinates.lat.toDouble(),
         maxLat: bounds.northeast.coordinates.lat.toDouble(),
         minLng: bounds.southwest.coordinates.lng.toDouble(),
         maxLng: bounds.northeast.coordinates.lng.toDouble(),
+        category: selectedCategory.value,
+        searchQuery: searchQuery.value.isNotEmpty ? searchQuery.value : null,
       );
 
       int newCount = 0;
-
       for (final spot in spots) {
-        final id = spot.id;
-        if (_markerCacheById.containsKey(id)) {
-          continue; // đã có marker
-        }
-
-        final markerBytes = await getMarkerIcon(spot.categoryIcon);
-        final annotation = await _annotationManager!.create(
-          PointAnnotationOptions(
-            geometry: Point(
-              coordinates: Position(spot.longitude, spot.latitude),
-            ),
-            image: markerBytes,
-            iconSize: 1.0,
-          ),
-        );
-
-        _markerCacheById[id] = annotation;
-        _annotationIdToCheckInId[annotation.id] = id; // lưu spotId
+        if (_markerCacheById.containsKey(spot.id)) continue;
+        await addSpotMarker(spot);
         newCount++;
       }
 
       debugPrint(
-          "✅ Loaded $newCount new spot markers (cache size=${_markerCacheById.length})");
+          "✅ Loaded $newCount new markers (cache=${_markerCacheById.length})");
     } catch (e) {
-      debugPrint("❌ Error loading spot markers in view: $e");
+      debugPrint("❌ Error loading markers: $e");
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  /// Khi user tap vào marker Spot
+  // ==========================
+  // Marker click
+  // ==========================
   Future<void> onMarkerTapped(String spotId) async {
     if (isBottomSheetOpen.value) return;
     isBottomSheetOpen.value = true;
@@ -280,7 +286,6 @@ class MapController extends GetxController {
           .collection("spots")
           .doc(spotId)
           .get();
-
       if (!spotDoc.exists) {
         isBottomSheetOpen.value = false;
         return;
@@ -301,7 +306,6 @@ class MapController extends GetxController {
               ),
               tag: spot.id,
             );
-
             return LocationCheckInsBottomSheet(
               spot: spot,
               currentUserId: currentUserId!,
