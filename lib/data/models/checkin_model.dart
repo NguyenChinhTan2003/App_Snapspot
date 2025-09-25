@@ -4,9 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class CheckInModel {
   final String id;
   final String userId;
+  final String spotId;
+  final String name;
   final String content;
   final String categoryId;
-  final String categoryIcon; // <- Lưu trực tiếp từ Firestore
+  final String categoryIcon;
   final String vibeId;
   final String vibeIcon;
   final double latitude;
@@ -14,10 +16,14 @@ class CheckInModel {
   final List<String> images;
   final DateTime createdAt;
   final CategoryModel? category;
+  final int likesCount;
+  final int dislikesCount;
 
   CheckInModel({
     required this.id,
     required this.userId,
+    required this.spotId,
+    required this.name,
     required this.content,
     required this.categoryId,
     required this.categoryIcon,
@@ -28,12 +34,16 @@ class CheckInModel {
     required this.images,
     required this.createdAt,
     this.category,
+    this.likesCount = 0,
+    this.dislikesCount = 0,
   });
 
   Map<String, dynamic> toJson() {
     return {
       "id": id,
       "userId": userId,
+      "spotId": spotId,
+      "name": name,
       "content": content,
       "categoryId": categoryId,
       "categoryIcon": categoryIcon,
@@ -42,7 +52,9 @@ class CheckInModel {
       "latitude": latitude,
       "longitude": longitude,
       "images": images,
-      "createdAt": createdAt,
+      "createdAt": Timestamp.fromDate(createdAt),
+      "likesCount": likesCount,
+      "dislikesCount": dislikesCount,
     };
   }
 
@@ -61,6 +73,8 @@ class CheckInModel {
     return CheckInModel(
       id: json["id"] ?? "",
       userId: json["userId"] ?? "",
+      spotId: json["spotId"] ?? "",
+      name: json["name"] ?? "",
       content: json["content"] ?? "",
       categoryId: json["categoryId"] ?? "",
       categoryIcon: json["categoryIcon"] ?? "",
@@ -70,6 +84,8 @@ class CheckInModel {
       longitude: (json["longitude"] as num).toDouble(),
       images: List<String>.from(json["images"] ?? []),
       createdAt: createdAt,
+      likesCount: json["likesCount"] ?? 0,
+      dislikesCount: json["dislikesCount"] ?? 0,
     );
   }
 }

@@ -19,27 +19,31 @@ class ProfileRepository {
       'name': profile.displayName,
       'email': profile.email,
       'photoUrl': profile.photoUrl,
-      'isCustomAvatar': profile.isCustomAvatar, 
+      'isCustomAvatar': profile.isCustomAvatar,
       'createdAt': FieldValue.serverTimestamp(),
     };
 
     await _firestore.collection('profiles').doc(profile.uid).set(
           data,
-          SetOptions(merge: true), 
+          SetOptions(merge: true),
         );
   }
 
-  Future<void> updateFields(String uid, {String? displayName, String? email, String? photoUrl, bool? isCustomAvatar}) async {
-  final data = <String, dynamic>{
-    "updatedAt": FieldValue.serverTimestamp(),
-  };
-  if (displayName != null) data["displayName"] = displayName;
-  if (email != null) data["email"] = email;
-  if (photoUrl != null) data["photoUrl"] = photoUrl;
-  if (isCustomAvatar != null) data["isCustomAvatar"] = isCustomAvatar;
+  Future<void> updateFields(String uid,
+      {String? displayName,
+      String? email,
+      String? photoUrl,
+      bool? isCustomAvatar}) async {
+    final data = <String, dynamic>{
+      "updatedAt": FieldValue.serverTimestamp(),
+    };
+    if (displayName != null) data["displayName"] = displayName;
+    if (email != null) data["email"] = email;
+    if (photoUrl != null) data["photoUrl"] = photoUrl;
+    if (isCustomAvatar != null) data["isCustomAvatar"] = isCustomAvatar;
 
-  await _firestore.collection("profiles").doc(uid).update(data);
-}
+    await _firestore.collection("profiles").doc(uid).update(data);
+  }
 
   Future<String?> uploadAvatar(String uid, File file) async {
     final ref = _storage.ref().child('profiles/$uid/avatar.jpg');

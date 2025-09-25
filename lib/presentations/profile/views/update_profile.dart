@@ -1,7 +1,7 @@
-
 import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
 import 'package:app_snapspot/presentations/profile/controllers/profile_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class UpdateProfileView extends StatelessWidget {
@@ -40,6 +40,10 @@ class UpdateProfileView extends StatelessWidget {
             TextField(
               controller: nameController,
               decoration: const InputDecoration(labelText: "Tên hiển thị"),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                    RegExp(r'[\p{L}0-9\s]', unicode: true)),
+              ],
             ),
             const SizedBox(height: 20),
             ElevatedButton(
@@ -57,6 +61,4 @@ class UpdateProfileView extends StatelessWidget {
       ),
     );
   }
-
-  
 }

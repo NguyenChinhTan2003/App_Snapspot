@@ -95,12 +95,43 @@ class CustomMarkerHelper {
   }
 
   /// Load UI Image từ network
-  static Future<ui.Image> _loadUiImage(String url) async {
-    final completer = Completer<ui.Image>();
-    final imageStream = NetworkImage(url).resolve(const ImageConfiguration());
-    imageStream.addListener(ImageStreamListener((info, _) {
-      completer.complete(info.image);
-    }));
-    return completer.future;
-  }
+static Future<ui.Image> _loadUiImage(String url) async {
+  final completer = Completer<ui.Image>();
+  final imageStream = NetworkImage(url).resolve(const ImageConfiguration());
+
+  imageStream.addListener(
+    ImageStreamListener(
+      (info, _) {
+        completer.complete(info.image);
+      },
+      onError: (error, stackTrace) async {
+        debugPrint("⚠️ Lỗi load ảnh marker: $error");
+
+        // fallback: vẽ 1 hình tròn đỏ có icon 📍
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        final paint = Paint()..color = Colors.red;
+
+        canvas.drawCircle(const Offset(50, 50), 40, paint);
+
+        final textPainter = TextPainter(
+          text: const TextSpan(
+            text: "📍",
+            style: TextStyle(fontSize: 40),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        textPainter.paint(canvas, const Offset(30, 30));
+
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(100, 100);
+        completer.complete(image);
+      },
+    ),
+  );
+
+  return completer.future;
+}
+
 }

@@ -20,7 +20,7 @@
             android:value="skia" />
         <meta-data
         android:name="com.mapbox.token"
-        android:value="pk.eyJ1IjoidGFuLWFkbWluIiwiYSI6ImNtY3VvbDBxZDAyN3gya29iZm13bTB0MnkifQ.2007J8zs2U1_uS2duObTfg"/>
+        android:value="pk.eyJ1IjoidGFuLWFkbWluIiwiYSI6ImNtZnR3ZWxidzBwZmwybHM4aWE1bm9odDQifQ.7_LW8sf0f0kqrwnmmzuCPQ"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

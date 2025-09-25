@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:app_snapspot/core/common_widgets/custom_image_picker_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/checkin_controller.dart';
 
@@ -24,6 +25,23 @@ class CheckinView extends GetView<CheckinController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Tên địa điểm
+              const Text("Tên địa điểm",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              TextField(
+                controller: controller.spotNameController,
+                decoration: InputDecoration(
+                  hintText: "Nhập tên địa điểm bạn đang check-in",
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(
+                      RegExp(r'[\p{L}0-9\s]', unicode: true)),
+                ],
+              ),
+              const SizedBox(height: 10),
               // Vị trí
               Text("📍 Vị trí: ${controller.locationName.value}",
                   style: const TextStyle(fontSize: 16)),
@@ -55,7 +73,7 @@ class CheckinView extends GetView<CheckinController> {
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
-                children: controller.vibes.map((vibe) { 
+                children: controller.vibes.map((vibe) {
                   final isSelected =
                       controller.selectedVibe.value?.id == vibe.id;
                   return ChoiceChip(

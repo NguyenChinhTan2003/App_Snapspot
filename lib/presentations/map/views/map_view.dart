@@ -1,19 +1,20 @@
 import 'package:app_snapspot/core/common_widgets/custom_crosshair.dart';
+import 'package:app_snapspot/presentations/map/views/custom_search_filter_bar.dart';
 import 'package:app_snapspot/presentations/map/controllers/map_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class MapPage extends GetView<MapController> {
-  
   const MapPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
       final token = controller.mapboxToken.value;
+      final location = controller.currentLocation.value;
 
-      if (token == null) {
+      if (token == null || location == null) {
         return const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -23,7 +24,7 @@ class MapPage extends GetView<MapController> {
               ),
               SizedBox(height: 16),
               Text(
-                "Loading Map...",
+                "Đang tải bản đồ...",
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey,
@@ -40,12 +41,24 @@ class MapPage extends GetView<MapController> {
           MapWidget(
             key: const ValueKey("mapWidget"),
             onMapCreated: controller.onMapCreated,
+            onCameraChangeListener: controller.onCameraChanged,
             cameraOptions: CameraOptions(
-              center: controller.currentLocation.value ??
-                  Point(
-                    coordinates: Position(106.660172, 10.762622),
-                  ),
-              zoom: 14.0,
+              center: location,
+              zoom: 15.0,
+            ),
+          ),
+
+          // Thanh search + filter categories
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 0,
+            right: 0,
+            child: CustomSearchFilterBar(
+              onSearch: (searchText, categoryId) {
+                controller.updateSearchQuery(searchText);
+                controller
+                    .updateCategory(categoryId.isNotEmpty ? categoryId : null);
+              },
             ),
           ),
 

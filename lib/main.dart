@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:app_snapspot/applications/services/global_binding.dart';
+import 'package:app_snapspot/applications/services/mapbox_service.dart';
 import 'package:app_snapspot/core/common_widgets/reset_app_widget.dart';
 import 'package:app_snapspot/firebase_options.dart';
 import 'package:app_snapspot/routes/app_pages.dart';
@@ -10,13 +11,13 @@ import 'package:get/get_navigation/src/routes/transitions_type.dart';
 
 import 'flavors.dart';
 
-
 FutureOr<void> main() async {
   GlobalBinding().dependencies();
   WidgetsFlutterBinding.ensureInitialized();
-   await Firebase.initializeApp(
+  await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await MapboxService.initialize();
   runApp(
     ResetAppWidget(
       child: GetMaterialApp(
@@ -25,9 +26,7 @@ FutureOr<void> main() async {
         initialRoute: AppPages.INITIAL,
         getPages: AppPages.routes,
         defaultTransition: Transition.rightToLeft,
-        
       ),
-      
     ),
   );
 }
