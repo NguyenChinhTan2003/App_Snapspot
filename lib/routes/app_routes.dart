@@ -9,6 +9,7 @@ abstract class Routes {
   static const CHECKIN = _Paths.CHECKIN;
   static const PROFILE = _Paths.PROFILE;
   static const LOGIN = _Paths.LOGIN;
+  static const CHECKIN_HISTORY = _Paths.CHECKIN_HISTORY;
 }
 
 abstract class _Paths {
@@ -18,5 +19,5 @@ abstract class _Paths {
   static const MAP = '/map';
   static const CHECKIN = '/checkin';
   static const PROFILE = '/profile';
-
+  static const CHECKIN_HISTORY = '/checkin-history';
 }

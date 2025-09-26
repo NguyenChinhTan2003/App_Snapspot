@@ -347,15 +347,30 @@ class CheckInRepository {
 
   /// Lấy toàn bộ checkin của 1 user
   Future<List<CheckInModel>> getUserCheckIns(String userId) async {
-    final snapshot = await _db
-        .collection("checkins")
-        .where("userId", isEqualTo: userId)
-        .orderBy("createdAt", descending: true)
-        .get();
+    try {
+      debugPrint("Query checkins for userId: $userId");
 
-    return snapshot.docs
-        .map((doc) => CheckInModel.fromJson(doc.data()))
-        .toList();
+      final snapshot = await _db
+          .collection("checkins")
+          .where("userId", isEqualTo: userId)
+          .orderBy("createdAt", descending: true)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        debugPrint("No checkins found for userId: $userId");
+      }
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return CheckInModel.fromJson({
+          "id": doc.id, // luôn lấy doc.id từ Firestore
+          ...data,
+        });
+      }).toList();
+    } catch (e) {
+      debugPrint("❌ Error in getUserCheckIns: $e");
+      rethrow;
+    }
   }
 
   /// Lấy chi tiết 1 checkin

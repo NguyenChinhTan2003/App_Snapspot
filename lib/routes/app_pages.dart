@@ -1,8 +1,9 @@
 // ignore_for_file: constant_identifier_names
 
-
 import 'package:app_snapspot/presentations/auth/bindings/auth_binding.dart';
 import 'package:app_snapspot/presentations/auth/views/login_view.dart';
+import 'package:app_snapspot/presentations/checkin_history/bindings/checkin_history_binding.dart';
+import 'package:app_snapspot/presentations/checkin_history/views/checkin_history_view.dart';
 import 'package:app_snapspot/presentations/profile/bindings/profile_binding.dart';
 import 'package:app_snapspot/presentations/profile/views/profile_view.dart';
 import 'package:app_snapspot/presentations/checkin/bindings/checkin_binding.dart';
@@ -25,15 +26,20 @@ class AppPages {
       page: () => HomeView(),
       binding: HomeBinding(),
     ),
-     GetPage(
+    GetPage(
       name: Routes.MAP,
       page: () => const MapPage(),
       binding: MapBinding(),
     ),
     GetPage(
       name: _Paths.CHECKIN,
-      page: () =>  const CheckinView(),
+      page: () => const CheckinView(),
       binding: CheckinBinding(),
+    ),
+    GetPage(
+      name: _Paths.CHECKIN_HISTORY,
+      page: () => const CheckInHistoryView(),
+      binding: CheckinHistoryBinding(),
     ),
     GetPage(
       name: Routes.PROFILE,

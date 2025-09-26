@@ -1,19 +1,19 @@
-import 'package:app_snapspot/core/common_widgets/custom_bottom_nav.dart';
-import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
-import 'package:app_snapspot/presentations/home/controllers/navigation_controller.dart';
-import 'package:app_snapspot/presentations/map/views/history_view.dart';
-import 'package:app_snapspot/presentations/map/views/map_view.dart';
-import 'package:app_snapspot/presentations/profile/views/profile_view.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:app_snapspot/presentations/home/controllers/navigation_controller.dart';
+import 'package:app_snapspot/presentations/map/views/map_view.dart';
+import 'package:app_snapspot/presentations/checkin_history/views/checkin_history_view.dart';
+import 'package:app_snapspot/presentations/profile/views/profile_view.dart';
+import 'package:app_snapspot/core/common_widgets/custom_bottom_nav.dart';
+import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
 
 class HomeView extends GetView<NavigationController> {
-   HomeView({super.key});
+  HomeView({super.key});
 
-  final List<Widget> pages = [
-    const MapPage(),
-    const HistoryView(),
-    const ProfileView(),
+  final List<Widget> pages = const [
+    MapPage(),
+    CheckInHistoryView(),
+    ProfileView(),
   ];
 
   @override

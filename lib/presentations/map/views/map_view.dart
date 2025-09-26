@@ -49,18 +49,23 @@ class MapPage extends GetView<MapController> {
           ),
 
           // Thanh search + filter categories
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 0,
-            right: 0,
-            child: CustomSearchFilterBar(
-              onSearch: (searchText, categoryId) {
-                controller.updateSearchQuery(searchText);
-                controller
-                    .updateCategory(categoryId.isNotEmpty ? categoryId : null);
-              },
-            ),
-          ),
+          Obx(() {
+            if (controller.mapMode.value == MapMode.selecting) {
+              return const SizedBox.shrink(); // Ẩn khi selecting
+            }
+            return Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 0,
+              right: 0,
+              child: CustomSearchFilterBar(
+                onSearch: (searchText, categoryId) {
+                  controller.updateSearchQuery(searchText);
+                  controller.updateCategory(
+                      categoryId.isNotEmpty ? categoryId : null);
+                },
+              ),
+            );
+          }),
 
           // Crosshair khi chọn vị trí
           if (controller.mapMode.value == MapMode.selecting)
@@ -99,35 +104,39 @@ class MapPage extends GetView<MapController> {
               ),
             ),
 
-          // Nút chức năng
-          if (controller.isAddButtonVisible.value)
-            Positioned(
-              right: 16,
-              bottom: 120,
-              child: Column(
-                children: [
-                  FloatingActionButton(
-                    mini: true,
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.green,
-                    heroTag: "currentLocation",
-                    onPressed: () {
-                      controller.goToCurrentLocation();
-                      controller.isCompassVisible.value = true;
-                    },
-                    child: const Icon(Icons.my_location),
-                  ),
-                  const SizedBox(height: 12),
-                  FloatingActionButton(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.green,
-                    heroTag: "addLocation",
-                    onPressed: controller.startLocationSelection,
-                    child: const Icon(Icons.add_location, size: 28),
-                  ),
-                ],
-              ),
-            ),
+          Obx(() {
+            if (controller.isAddButtonVisible.value &&
+                controller.mapMode.value != MapMode.selecting) {
+              return Positioned(
+                right: 16,
+                bottom: 120,
+                child: Column(
+                  children: [
+                    FloatingActionButton(
+                      mini: true,
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.green,
+                      heroTag: "currentLocation",
+                      onPressed: () {
+                        controller.goToCurrentLocation();
+                        controller.isCompassVisible.value = true;
+                      },
+                      child: const Icon(Icons.my_location),
+                    ),
+                    const SizedBox(height: 12),
+                    FloatingActionButton(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.green,
+                      heroTag: "addLocation",
+                      onPressed: controller.startLocationSelection,
+                      child: const Icon(Icons.add_location, size: 28),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
 
           // Nút confirm/cancel khi chọn vị trí
           if (controller.mapMode.value == MapMode.selecting)

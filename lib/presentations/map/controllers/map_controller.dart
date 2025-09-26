@@ -131,7 +131,6 @@ class MapController extends GetxController {
   // Selection Mode
   void startLocationSelection() {
     mapMode.value = MapMode.selecting;
-    isAddButtonVisible.value = false;
   }
 
   void cancelLocationSelection() {
