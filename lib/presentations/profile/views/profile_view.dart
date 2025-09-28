@@ -1,10 +1,12 @@
 import 'package:app_snapspot/core/common_widgets/custom_image_picker_sheet.dart';
+import 'package:app_snapspot/data/models/user_profile_model.dart';
 import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
 import 'package:app_snapspot/presentations/auth/views/login_view.dart';
 import 'package:app_snapspot/presentations/profile/controllers/profile_controller.dart';
 import 'package:app_snapspot/presentations/profile/views/update_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -303,9 +305,7 @@ class ProfileView extends StatelessWidget {
                                         ),
                                       ),
                                       Text(
-                                        profile.createdAt != null
-                                            ? 'Đã tham gia vào ${profile.createdAt!.toLocal().toString().split(' ')[0]}'
-                                            : 'Ngày tham gia không xác định',
+                                        profile.formattedCreatedAt,
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,

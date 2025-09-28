@@ -38,22 +38,24 @@ class ProfileController extends GetxController {
     if (user != null) {
       final uid = user.uid;
       final email = user.email ?? '';
-      final name = user.displayName ?? '------';
+      final googleName = user.displayName ?? '------';
       _googlePhoto.value = user.photoURL;
 
       var data = await _repository.getProfile(uid);
 
       if (data == null) {
+        //dùng tên Google khi chưa có profile
         final newProfile = ProfileModel(
           uid: uid,
-          displayName: name,
+          displayName: googleName,
           email: email,
           photoUrl: null,
           isCustomAvatar: false,
         );
-        await _repository.saveProfile(newProfile);
+        await _repository.saveOrUpdateProfile(newProfile);
         profile.value = newProfile;
       } else {
+        // giữ nguyên displayName nếu đã có
         if (data.email != email) {
           await _repository.updateFields(uid, email: email);
           data = data.copyWith(email: email);
@@ -67,7 +69,7 @@ class ProfileController extends GetxController {
   }
 
   Future<void> saveProfile(ProfileModel profileModel) async {
-    await _repository.saveProfile(profileModel);
+    await _repository.saveOrUpdateProfile(profileModel);
     profile.value = profileModel;
   }
 
