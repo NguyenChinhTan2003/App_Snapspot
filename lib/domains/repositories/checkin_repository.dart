@@ -3,6 +3,7 @@ import 'package:app_snapspot/data/models/category_model.dart';
 import 'package:app_snapspot/data/models/enhanced_checkin_model.dart';
 import 'package:app_snapspot/data/models/user_profile_model.dart';
 import 'package:app_snapspot/data/models/vibe_model.dart';
+import 'package:app_snapspot/domains/repositories/spot_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:app_snapspot/data/models/checkin_model.dart';
@@ -19,6 +20,69 @@ class CheckInRepository {
     data["likesCount"] = 0;
     data["dislikesCount"] = 0;
     await _db.collection("checkins").doc(checkIn.id).set(data);
+  }
+
+  Future<void> deleteCheckIn(
+      String checkinId, String userId, String spotId) async {
+    final checkinRef = _db.collection('checkins').doc(checkinId);
+
+    // 1. Lấy dữ liệu checkin để check quyền
+    final snapshot = await checkinRef.get();
+    if (!snapshot.exists) {
+      throw Exception("Checkin không tồn tại");
+    }
+    final data = snapshot.data()!;
+    if (data['userId'] != userId) {
+      throw Exception("Bạn không có quyền xoá checkin này");
+    }
+
+    // 2. Xoá reactions trước
+    final reactionsRef = checkinRef.collection('reactions');
+    final reactionsSnap = await reactionsRef.get();
+    for (final doc in reactionsSnap.docs) {
+      await doc.reference.delete();
+    }
+
+    // 3. Xoá checkin
+    await checkinRef.delete();
+
+    // 4. Kiểm tra xem spot còn checkin nào không
+    final checkinsSnap = await _db
+        .collection('checkins')
+        .where('spotId', isEqualTo: spotId)
+        .limit(1)
+        .get();
+
+    if (checkinsSnap.docs.isEmpty) {
+      // Không còn checkin nào => xoá spot
+      await SpotRepository().deleteSpot(spotId);
+    }
+  }
+
+// Hàm xoá sub-collection theo batch
+  Future<void> _deleteCollection(CollectionReference collectionRef,
+      {int batchSize = 500}) async {
+    QuerySnapshot snapshot = await collectionRef.limit(batchSize).get();
+    while (snapshot.docs.isNotEmpty) {
+      WriteBatch batch = _db.batch();
+      for (var doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      snapshot = await collectionRef.limit(batchSize).get();
+    }
+  }
+
+  /// Cập nhật checkin
+  Future<void> updateCheckIn(
+      String checkInId, Map<String, dynamic> updates) async {
+    try {
+      updates["updatedAt"] = FieldValue.serverTimestamp();
+
+      await _db.collection("checkins").doc(checkInId).update(updates);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> toggleLike(
@@ -152,16 +216,16 @@ class CheckInRepository {
 
       String? currentType;
       if (reactionSnap.exists) {
-        currentType = reactionSnap['type'] as String;
+        currentType = reactionSnap['type'] as String?;
       }
 
-      // Nếu user đã chọn cùng reaction → xóa reaction
+      //Nếu user bấm lại cùng loại → xóa reaction
       if (currentType == type) {
         transaction.delete(reactionRef);
-        if (type == 'like')
-          likesCount--;
-        else
-          dislikesCount--;
+
+        if (type == 'like') likesCount--;
+        if (type == 'dislike') dislikesCount--;
+
         transaction.update(checkinRef, {
           'likesCount': likesCount,
           'dislikesCount': dislikesCount,
@@ -175,7 +239,7 @@ class CheckInRepository {
         };
       }
 
-      // Nếu user chuyển từ like -> dislike hoặc ngược lại
+      // Nếu user chuyển từ like → dislike hoặc ngược lại
       if (currentType != null && currentType != type) {
         if (currentType == 'like') likesCount--;
         if (currentType == 'dislike') dislikesCount--;
@@ -183,7 +247,12 @@ class CheckInRepository {
         if (type == 'like') likesCount++;
         if (type == 'dislike') dislikesCount++;
 
-        transaction.update(reactionRef, {'type': type});
+        transaction.set(reactionRef, {
+          'type': type,
+          'userId': userId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
         transaction.update(checkinRef, {
           'likesCount': likesCount,
           'dislikesCount': dislikesCount,
@@ -202,7 +271,12 @@ class CheckInRepository {
         if (type == 'like') likesCount++;
         if (type == 'dislike') dislikesCount++;
 
-        transaction.set(reactionRef, {'type': type});
+        transaction.set(reactionRef, {
+          'type': type,
+          'userId': userId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
         transaction.update(checkinRef, {
           'likesCount': likesCount,
           'dislikesCount': dislikesCount,
@@ -216,7 +290,6 @@ class CheckInRepository {
         };
       }
 
-      // fallback
       return {
         'likesCount': likesCount,
         'dislikesCount': dislikesCount,

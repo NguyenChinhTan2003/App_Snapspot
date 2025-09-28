@@ -1,3 +1,4 @@
+import 'package:app_snapspot/core/common_widgets/custom_expandable_text.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:flutter/material.dart';
@@ -157,7 +158,9 @@ class CheckInHistoryView extends StatelessWidget {
             children: [
               // Header
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Tên + ngày
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,6 +184,37 @@ class CheckInHistoryView extends StatelessWidget {
                         ),
                       ],
                     ),
+                  ),
+
+                  // Nút Update + Delete
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        tooltip: "Cập nhật",
+                        onPressed: () {
+                          Get.snackbar(
+                              "Update", "Chỉnh sửa check-in ${checkin.id}");
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        tooltip: "Xóa",
+                        onPressed: () {
+                          Get.defaultDialog(
+                            title: "Xác nhận",
+                            middleText: "Bạn có chắc muốn xóa check-in này?",
+                            textCancel: "Hủy",
+                            textConfirm: "Xóa",
+                            confirmTextColor: Colors.white,
+                            onConfirm: () {
+                              controller.deleteCheckIn(checkin.id);
+                              Get.back();
+                            },
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -252,12 +286,9 @@ class CheckInHistoryView extends StatelessWidget {
                     color: Colors.grey[50],
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    checkin.content,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontStyle: FontStyle.italic,
-                    ),
+                  child: ExpandableText(
+                    text: checkin.content,
+                    trimLines: 2,
                   ),
                 ),
               ],
