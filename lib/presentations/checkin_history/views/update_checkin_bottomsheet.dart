@@ -9,7 +9,11 @@ void showUpdateCheckInSheet(
   CheckInModel checkin, {
   VoidCallback? onUpdated,
 }) {
-  final updateController = Get.put(UpdateCheckinController(checkin));
+
+  final updateController = Get.put(
+    UpdateCheckinController(checkin),
+    tag: checkin.id,
+  );
 
   Get.bottomSheet(
     Obx(() => Container(
@@ -197,5 +201,8 @@ void showUpdateCheckInSheet(
           ),
         )),
     isScrollControlled: true,
-  );
+  ).whenComplete(() {
+    Get.delete<UpdateCheckinController>(tag: checkin.id);
+  });
+
 }
