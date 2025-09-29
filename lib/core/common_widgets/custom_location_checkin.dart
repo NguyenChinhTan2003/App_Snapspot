@@ -10,9 +10,9 @@ import 'package:app_snapspot/data/models/spot_model.dart';
 
 class LocationCheckInsBottomSheet extends StatelessWidget {
   final SpotModel spot;
-  final String currentUserId;
+  final String? currentUserId;
   const LocationCheckInsBottomSheet(
-      {super.key, required this.spot, required this.currentUserId});
+      {super.key, required this.spot, this.currentUserId});
 
   void _showCheckInDetail(BuildContext context, checkin) {
     showModalBottomSheet(

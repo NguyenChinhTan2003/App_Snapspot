@@ -13,20 +13,37 @@ class ProfileRepository {
     return ProfileModel.fromJson(doc.data()!);
   }
 
-  Future<void> saveProfile(ProfileModel profile) async {
-    final data = {
-      'uid': profile.uid,
-      'name': profile.displayName,
-      'email': profile.email,
-      'photoUrl': profile.photoUrl,
-      'isCustomAvatar': profile.isCustomAvatar,
-      'createdAt': FieldValue.serverTimestamp(),
-    };
+  Future<void> saveOrUpdateProfile(ProfileModel profile) async {
+    final docRef = _firestore.collection("profiles").doc(profile.uid);
+    final existing = await docRef.get();
 
-    await _firestore.collection('profiles').doc(profile.uid).set(
-          data,
-          SetOptions(merge: true),
-        );
+    if (existing.exists) {
+      final data = existing.data()!;
+
+      // Giữ tên đã custom nếu có
+      final updatedData = {
+        "uid": profile.uid,
+        "email": profile.email,
+        "photoUrl": (data['isCustomAvatar'] == true)
+            ? data['photoUrl']
+            : profile.photoUrl,
+        "updatedAt": FieldValue.serverTimestamp(),
+      };
+
+      await docRef.set(updatedData, SetOptions(merge: true));
+    } else {
+      // Tạo mới nếu chưa có
+      final newData = {
+        "uid": profile.uid,
+        "displayName": profile.displayName,
+        "email": profile.email,
+        "photoUrl": profile.photoUrl,
+        "isCustomAvatar": false,
+        "createdAt": FieldValue.serverTimestamp(),
+      };
+
+      await docRef.set(newData, SetOptions(merge: true));
+    }
   }
 
   Future<void> updateFields(String uid,

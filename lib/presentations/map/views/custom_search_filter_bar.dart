@@ -16,7 +16,7 @@ class CustomSearchFilterBar extends StatelessWidget {
     final controller = Get.put(SearchFilterController(CategoryRepository()));
 
     return Container(
-      color: Colors.white,
+      color: Colors.transparent,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Column(
         children: [
@@ -103,14 +103,8 @@ class CustomSearchFilterBar extends StatelessWidget {
                     child: GestureDetector(
                       onTap: () {
                         controller.selectCategory(cat.id);
-
-                        // Nếu selectedCategory rỗng => load tất cả
-                        onSearch(
-                          controller.searchText.value,
-                          controller.selectedCategory.value.isEmpty
-                              ? "ALL"
-                              : controller.selectedCategory.value,
-                        );
+                        onSearch(controller.searchText.value,
+                            controller.selectedCategory.value);
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(

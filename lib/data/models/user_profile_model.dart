@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class ProfileModel {
   final String uid;
   final String displayName;
   final String email;
   final String? photoUrl;
-  final bool isCustomAvatar; 
+  final bool isCustomAvatar;
   final DateTime createdAt;
 
   ProfileModel({
@@ -20,7 +21,7 @@ class ProfileModel {
   Map<String, dynamic> toJson() {
     return {
       'uid': uid,
-      'name': displayName,
+      'displayName': displayName,
       'email': email,
       'photoUrl': photoUrl,
       'isCustomAvatar': isCustomAvatar,
@@ -31,10 +32,10 @@ class ProfileModel {
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
     return ProfileModel(
       uid: json['uid'],
-      displayName: json['name'] ?? '',
+      displayName: json['displayName'] ?? '',
       email: json['email'] ?? '',
       photoUrl: json['photoUrl'],
-      isCustomAvatar: json['isCustomAvatar'] ?? false, 
+      isCustomAvatar: json['isCustomAvatar'] ?? false,
       createdAt: (json['createdAt'] is Timestamp)
           ? (json['createdAt'] as Timestamp).toDate()
           : DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now(),
@@ -58,4 +59,9 @@ class ProfileModel {
       createdAt: createdAt ?? this.createdAt,
     );
   }
+}
+
+extension ProfileModelExt on ProfileModel {
+  String get formattedCreatedAt =>
+      DateFormat('dd/MM/yyyy • HH:mm').format(createdAt);
 }

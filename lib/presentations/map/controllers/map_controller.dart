@@ -131,7 +131,6 @@ class MapController extends GetxController {
   // Selection Mode
   void startLocationSelection() {
     mapMode.value = MapMode.selecting;
-    isAddButtonVisible.value = false;
   }
 
   void cancelLocationSelection() {
@@ -302,13 +301,13 @@ class MapController extends GetxController {
               LocationCheckInsController(
                 CheckInRepository(),
                 spot.id,
-                currentUserId!,
+                currentUserId,
               ),
               tag: spot.id,
             );
             return LocationCheckInsBottomSheet(
               spot: spot,
-              currentUserId: currentUserId!,
+              currentUserId: currentUserId,
             );
           },
         ),
