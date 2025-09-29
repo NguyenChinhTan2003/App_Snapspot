@@ -191,12 +191,58 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                           children: [
                                             Row(
                                               children: [
-                                                Text(
-                                                  profile?.displayName ??
-                                                      "Ẩn danh",
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    if (profile != null) {
+                                                      if (currentUserId !=
+                                                              null &&
+                                                          currentUserId ==
+                                                              profile.uid) {
+                                                        return; // Không mở nếu là chính mình
+                                                      }
+                                                      showDialog(
+                                                        context: context,
+                                                        builder: (context) {
+                                                          return Dialog(
+                                                            insetPadding:
+                                                                const EdgeInsets
+                                                                    .all(16),
+                                                            shape:
+                                                                RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          28),
+                                                            ),
+                                                            child: SizedBox(
+                                                              height: MediaQuery.of(
+                                                                          context)
+                                                                      .size
+                                                                      .height *
+                                                                  0.55,
+                                                              width: MediaQuery.of(
+                                                                          context)
+                                                                      .size
+                                                                      .width *
+                                                                  0.85,
+                                                              child:
+                                                                  ProfilePublic(
+                                                                      uid: profile
+                                                                          .uid),
+                                                            ),
+                                                          );
+                                                        },
+                                                      );
+                                                    }
+                                                  },
+                                                  child: Text(
+                                                    profile?.displayName ??
+                                                        "Ẩn danh",
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16,
+                                                    ),
                                                   ),
                                                 ),
                                                 const Spacer(),
