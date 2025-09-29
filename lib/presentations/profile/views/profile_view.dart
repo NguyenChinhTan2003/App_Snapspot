@@ -332,8 +332,10 @@ class ProfileView extends StatelessWidget {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () =>
-                                    Get.to(() => const UpdateProfileView()),
+                                onPressed: () => Get.bottomSheet(
+                                  const UpdateProfileSheet(),
+                                  isScrollControlled: true,
+                                ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF667eea),
                                   foregroundColor: Colors.white,

@@ -13,7 +13,7 @@ enum CheckInVibeOption { all, thugian, vuive, yeuduong, bucxuc }
 class LocationCheckInsController extends GetxController {
   final CheckInRepository repo;
   final String spotId;
-  final String currentUserId;
+  final String? currentUserId;
 
   LocationCheckInsController(this.repo, this.spotId, this.currentUserId);
 

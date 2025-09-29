@@ -88,4 +88,33 @@ class CheckInModel {
       dislikesCount: json["dislikesCount"] ?? 0,
     );
   }
+
+  CheckInModel copyWith({
+    String? name,
+    String? content,
+    String? vibeId,
+    String? vibeIcon,
+    List<String>? images,
+    int? likesCount,
+    int? dislikesCount,
+  }) {
+    return CheckInModel(
+      id: id,
+      userId: userId,
+      spotId: spotId,
+      name: name ?? this.name,
+      content: content ?? this.content,
+      categoryId: categoryId,
+      categoryIcon: categoryIcon,
+      vibeId: vibeId ?? this.vibeId,
+      vibeIcon: vibeIcon ?? this.vibeIcon,
+      latitude: latitude,
+      longitude: longitude,
+      images: images ?? this.images,
+      createdAt: createdAt,
+      category: category,
+      likesCount: likesCount ?? this.likesCount,
+      dislikesCount: dislikesCount ?? this.dislikesCount,
+    );
+  }
 }

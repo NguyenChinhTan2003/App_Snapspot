@@ -1,6 +1,7 @@
 import 'package:app_snapspot/core/common_widgets/custom_expandable_text.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
+import 'package:app_snapspot/presentations/checkin_history/views/update_checkin_bottomsheet.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -190,12 +191,13 @@ class CheckInHistoryView extends StatelessWidget {
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        tooltip: "Cập nhật",
-                        onPressed: () {
-                          Get.snackbar(
-                              "Update", "Chỉnh sửa check-in ${checkin.id}");
-                        },
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => showUpdateCheckInSheet(
+                          checkin,
+                          onUpdated: () {
+                            controller.fetchCheckIns();
+                          },
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),

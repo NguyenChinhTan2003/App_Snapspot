@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-class UpdateProfileView extends StatelessWidget {
-  const UpdateProfileView({super.key});
+class UpdateProfileSheet extends StatelessWidget {
+  const UpdateProfileSheet({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,38 +15,47 @@ class UpdateProfileView extends StatelessWidget {
     final nameController =
         TextEditingController(text: profileController.displayName);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Cập nhật hồ sơ")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Obx(() {
-              final effectivePhoto = profileController.effectivePhotoUrl;
-              return GestureDetector(
-                child: CircleAvatar(
-                  radius: 60,
-                  backgroundImage:
-                      (effectivePhoto != null && effectivePhoto.isNotEmpty)
-                          ? NetworkImage(effectivePhoto)
-                          : null,
-                  child: (effectivePhoto == null || effectivePhoto.isEmpty)
-                      ? const Icon(Icons.person, size: 60)
-                      : null,
-                ),
-              );
-            }),
-            const SizedBox(height: 20),
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: "Tên hiển thị"),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(
-                    RegExp(r'[\p{L}0-9\s]', unicode: true)),
-              ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Wrap(
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: nameController,
+            decoration: const InputDecoration(
+              labelText: "Tên hiển thị",
+              border: OutlineInputBorder(),
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(
+                  RegExp(r'[\p{L}0-9\s]', unicode: true)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               onPressed: () async {
                 final newName = nameController.text.trim();
                 if (newName.isEmpty) return;
@@ -54,10 +63,11 @@ class UpdateProfileView extends StatelessWidget {
                 await profileController.updateDisplayName(newName);
                 Get.back();
               },
-              child: const Text("Lưu"),
-            )
-          ],
-        ),
+              child: const Text("Lưu", style: TextStyle(fontSize: 16)),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
       ),
     );
   }

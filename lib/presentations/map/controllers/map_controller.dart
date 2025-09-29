@@ -301,13 +301,13 @@ class MapController extends GetxController {
               LocationCheckInsController(
                 CheckInRepository(),
                 spot.id,
-                currentUserId!,
+                currentUserId,
               ),
               tag: spot.id,
             );
             return LocationCheckInsBottomSheet(
               spot: spot,
-              currentUserId: currentUserId!,
+              currentUserId: currentUserId,
             );
           },
         ),
