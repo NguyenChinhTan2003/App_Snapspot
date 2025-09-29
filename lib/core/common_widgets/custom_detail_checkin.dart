@@ -26,8 +26,7 @@ class CheckInBottomSheet extends StatelessWidget {
 
     final likeController = Get.put(
       ClickLikeController(
-        repo: CheckInRepository(),
-        checkin: checkin,
+        checkin,
         currentUserId: authController.firebaseUser.value?.uid,
       ),
       tag: "like-${checkin.id}",
@@ -212,7 +211,8 @@ class CheckInBottomSheet extends StatelessWidget {
                             Icons.thumb_up,
                             color: likedColor,
                           ),
-                          onPressed: () => likeController.toggleLike(),
+                          onPressed: () =>
+                              likeController.toggleReaction("like"),
                         ),
                         Text("${likeController.likesCount.value}"),
                         const SizedBox(width: 8),
@@ -221,7 +221,8 @@ class CheckInBottomSheet extends StatelessWidget {
                             Icons.thumb_down,
                             color: dislikedColor,
                           ),
-                          onPressed: () => likeController.toggleDislike(),
+                          onPressed: () =>
+                              likeController.toggleReaction("dislike"),
                         ),
                         Text("${likeController.dislikesCount.value}"),
                       ],

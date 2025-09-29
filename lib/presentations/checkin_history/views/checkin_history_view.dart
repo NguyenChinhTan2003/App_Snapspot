@@ -128,8 +128,7 @@ class CheckInHistoryView extends StatelessWidget {
       CheckInModel checkin, CheckInHistoryController controller) {
     final clickLikeController = Get.put(
       ClickLikeController(
-        repo: CheckInRepository(),
-        checkin: checkin,
+        checkin,
         currentUserId: controller.userId,
       ),
       tag: checkin.id,

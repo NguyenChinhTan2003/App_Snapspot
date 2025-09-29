@@ -111,8 +111,7 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                             .format(checkin.createdAt);
                         final clickLikeController = Get.put(
                           ClickLikeController(
-                            repo: CheckInRepository(),
-                            checkin: checkin,
+                            checkin,
                             currentUserId: currentUserId,
                           ),
                           tag: checkin.id,
