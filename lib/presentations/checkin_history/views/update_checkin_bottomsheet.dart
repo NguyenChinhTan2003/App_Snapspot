@@ -9,10 +9,12 @@ void showUpdateCheckInSheet(
   CheckInModel checkin, {
   VoidCallback? onUpdated,
 }) {
+
   final updateController = Get.put(
     UpdateCheckinController(checkin),
     tag: checkin.id,
   );
+
   Get.bottomSheet(
     Obx(() => Container(
           padding: const EdgeInsets.all(16),
@@ -202,4 +204,5 @@ void showUpdateCheckInSheet(
   ).whenComplete(() {
     Get.delete<UpdateCheckinController>(tag: checkin.id);
   });
+
 }
