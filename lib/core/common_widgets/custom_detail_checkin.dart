@@ -2,8 +2,8 @@ import 'package:app_snapspot/core/common_widgets/custom_expandable_text.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
 import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
+import 'package:app_snapspot/presentations/profile/views/profile_public.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:app_snapspot/data/models/checkin_model.dart';
@@ -73,17 +73,47 @@ class CheckInBottomSheet extends StatelessWidget {
               // Header: Người đăng + Thời gian
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundImage: user?.photoUrl != null
-                        ? NetworkImage(user!.photoUrl!)
-                        : null,
-                    backgroundColor: Colors.grey[300],
-                    child: isLoading
-                        ? const CircularProgressIndicator(strokeWidth: 2)
-                        : (user?.photoUrl == null
-                            ? const Icon(Icons.person, color: Colors.white)
-                            : null),
+                  GestureDetector(
+                    onTap: () {
+                      if (user != null) {
+                        final authController = Get.find<AuthController>();
+                        final currentUserId =
+                            authController.firebaseUser.value?.uid;
+                        if (currentUserId != null &&
+                            currentUserId == user.uid) {
+                          return;
+                        }
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return Dialog(
+                              insetPadding: const EdgeInsets.all(16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(28),
+                              ),
+                              child: SizedBox(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.55,
+                                width: MediaQuery.of(context).size.width * 0.85,
+                                child: ProfilePublic(uid: user.uid),
+                              ),
+                            );
+                          },
+                        );
+                      }
+                    },
+                    child: CircleAvatar(
+                      radius: 24,
+                      backgroundImage: user?.photoUrl != null
+                          ? NetworkImage(user!.photoUrl!)
+                          : null,
+                      backgroundColor: Colors.grey[300],
+                      child: isLoading
+                          ? const CircularProgressIndicator(strokeWidth: 2)
+                          : (user?.photoUrl == null
+                              ? const Icon(Icons.person, color: Colors.white)
+                              : null),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
