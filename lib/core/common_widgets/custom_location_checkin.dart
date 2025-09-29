@@ -3,6 +3,7 @@ import 'package:app_snapspot/core/common_widgets/custom_filter_bar.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/locationCheckins_controller.dart';
+import 'package:app_snapspot/presentations/profile/views/profile_public.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -133,13 +134,55 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                   // Header row
                                   Row(
                                     children: [
-                                      CircleAvatar(
-                                        radius: 20,
-                                        backgroundImage: profile?.photoUrl !=
-                                                null
-                                            ? NetworkImage(profile!.photoUrl!)
-                                            : null,
-                                        backgroundColor: Colors.grey[300],
+                                      GestureDetector(
+                                        onTap: () {
+                                          if (profile != null) {
+                                            if (currentUserId != null &&
+                                                currentUserId == profile.uid) {
+                                              return;
+                                            }
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) {
+                                                return Dialog(
+                                                  insetPadding:
+                                                      const EdgeInsets.all(16),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            28),
+                                                  ),
+                                                  child: SizedBox(
+                                                    height:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .height *
+                                                            0.55,
+                                                    width:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width *
+                                                            0.85,
+                                                    child: ProfilePublic(
+                                                        uid: profile.uid),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          }
+                                        },
+                                        child: CircleAvatar(
+                                          radius: 20,
+                                          backgroundImage: profile?.photoUrl !=
+                                                  null
+                                              ? NetworkImage(profile!.photoUrl!)
+                                              : null,
+                                          backgroundColor: Colors.grey[300],
+                                          child: profile?.photoUrl == null
+                                              ? const Icon(Icons.person,
+                                                  color: Colors.white)
+                                              : null,
+                                        ),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -150,18 +193,20 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                             Row(
                                               children: [
                                                 Text(
-                                                    profile?.displayName ??
-                                                        "Ẩn danh",
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 16)),
+                                                  profile?.displayName ??
+                                                      "Ẩn danh",
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
                                                 const Spacer(),
                                                 Text(
                                                   formattedDate,
                                                   style: const TextStyle(
-                                                      color: Colors.black87,
-                                                      fontSize: 15),
+                                                    color: Colors.black87,
+                                                    fontSize: 15,
+                                                  ),
                                                 ),
                                               ],
                                             ),
