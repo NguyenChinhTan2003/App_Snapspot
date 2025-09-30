@@ -33,7 +33,7 @@ class SearchFilterController extends GetxController {
 
   void selectCategory(String categoryId) {
     if (selectedCategory.value == categoryId) {
-      selectedCategory.value = ''; // bỏ chọn nếu nhấn lần 2
+      selectedCategory.value = '';
     } else {
       selectedCategory.value = categoryId;
     }

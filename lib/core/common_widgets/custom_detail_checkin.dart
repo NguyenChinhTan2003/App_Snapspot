@@ -26,8 +26,7 @@ class CheckInBottomSheet extends StatelessWidget {
 
     final likeController = Get.put(
       ClickLikeController(
-        repo: CheckInRepository(),
-        checkin: checkin,
+        checkin,
         currentUserId: authController.firebaseUser.value?.uid,
       ),
       tag: "like-${checkin.id}",
@@ -122,13 +121,52 @@ class CheckInBottomSheet extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Text(
-                              user?.displayName ??
-                                  (isLoading ? "Đang tải..." : "Ẩn danh"),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            GestureDetector(
+                              onTap: () {
+                                if (user != null) {
+                                  final authController =
+                                      Get.find<AuthController>();
+                                  final currentUserId =
+                                      authController.firebaseUser.value?.uid;
+                                  if (currentUserId != null &&
+                                      currentUserId == user.uid) {
+                                    return; // Không mở nếu là chính mình
+                                  }
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return Dialog(
+                                        insetPadding: const EdgeInsets.all(16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(28),
+                                        ),
+                                        child: SizedBox(
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .height *
+                                              0.55,
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width *
+                                              0.85,
+                                          child: ProfilePublic(uid: user.uid),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                }
+                              },
+                              child: Text(
+                                user?.displayName ??
+                                    (isLoading ? "Đang tải..." : "Ẩn danh"),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                        fontWeight: FontWeight.normal,
+                                        color: Colors.black),
+                              ),
                             ),
                             const Spacer(),
                             Text(
@@ -212,7 +250,8 @@ class CheckInBottomSheet extends StatelessWidget {
                             Icons.thumb_up,
                             color: likedColor,
                           ),
-                          onPressed: () => likeController.toggleLike(),
+                          onPressed: () =>
+                              likeController.toggleReaction("like"),
                         ),
                         Text("${likeController.likesCount.value}"),
                         const SizedBox(width: 8),
@@ -221,7 +260,8 @@ class CheckInBottomSheet extends StatelessWidget {
                             Icons.thumb_down,
                             color: dislikedColor,
                           ),
-                          onPressed: () => likeController.toggleDislike(),
+                          onPressed: () =>
+                              likeController.toggleReaction("dislike"),
                         ),
                         Text("${likeController.dislikesCount.value}"),
                       ],
