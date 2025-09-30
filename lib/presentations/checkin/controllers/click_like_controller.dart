@@ -26,6 +26,16 @@ class ClickLikeController extends GetxController {
 
     // Lắng nghe realtime checkin
     _checkinSub = repo.streamCheckIn(checkin.id).listen((updatedCheckin) {
+      if (updatedCheckin == null) {
+        // Checkin đã bị xóa
+        likesCount.value = 0;
+        dislikesCount.value = 0;
+
+        //thông báo hoặc tự đóng UI
+        Get.snackbar("Thông báo", "Checkin này đã bị xoá");
+        return;
+      }
+
       likesCount.value = updatedCheckin.likesCount;
       dislikesCount.value = updatedCheckin.dislikesCount;
     });

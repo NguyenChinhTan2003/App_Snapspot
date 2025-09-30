@@ -9,8 +9,10 @@ class CheckInModel {
   final String content;
   final String categoryId;
   final String categoryIcon;
+  final String categoryName;
   final String vibeId;
   final String vibeIcon;
+  final String vibeName;
   final double latitude;
   final double longitude;
   final List<String> images;
@@ -27,8 +29,10 @@ class CheckInModel {
     required this.content,
     required this.categoryId,
     required this.categoryIcon,
+    required this.categoryName,
     required this.vibeId,
     required this.vibeIcon,
+    required this.vibeName,
     required this.latitude,
     required this.longitude,
     required this.images,
@@ -47,8 +51,10 @@ class CheckInModel {
       "content": content,
       "categoryId": categoryId,
       "categoryIcon": categoryIcon,
+      "categoryName": categoryName,
       "vibeId": vibeId,
       "vibeIcon": vibeIcon,
+      "vibeName": vibeName,
       "latitude": latitude,
       "longitude": longitude,
       "images": images,
@@ -78,8 +84,10 @@ class CheckInModel {
       content: json["content"] ?? "",
       categoryId: json["categoryId"] ?? "",
       categoryIcon: json["categoryIcon"] ?? "",
+      categoryName: json['categoryName'] ?? '',
       vibeId: json["vibeId"] ?? "",
       vibeIcon: json["vibeIcon"] ?? "",
+      vibeName: json['vibeName'] ?? '',
       latitude: (json["latitude"] as num).toDouble(),
       longitude: (json["longitude"] as num).toDouble(),
       images: List<String>.from(json["images"] ?? []),
@@ -94,6 +102,7 @@ class CheckInModel {
     String? content,
     String? vibeId,
     String? vibeIcon,
+    String? vibeName,
     List<String>? images,
     int? likesCount,
     int? dislikesCount,
@@ -106,8 +115,10 @@ class CheckInModel {
       content: content ?? this.content,
       categoryId: categoryId,
       categoryIcon: categoryIcon,
+      categoryName: categoryName,
       vibeId: vibeId ?? this.vibeId,
       vibeIcon: vibeIcon ?? this.vibeIcon,
+      vibeName: vibeName ?? this.vibeName,
       latitude: latitude,
       longitude: longitude,
       images: images ?? this.images,

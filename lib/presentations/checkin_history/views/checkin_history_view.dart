@@ -230,7 +230,7 @@ class CheckInHistoryView extends StatelessWidget {
                     children: [
                       if (checkin.categoryIcon.isNotEmpty)
                         Chip(
-                          label: Text(checkin.categoryId),
+                          label: Text(checkin.categoryName),
                           avatar: Image.network(
                             checkin.categoryIcon,
                             width: 20,
@@ -239,7 +239,7 @@ class CheckInHistoryView extends StatelessWidget {
                         ),
                       const SizedBox(width: 8),
                       Chip(
-                        label: Text(checkin.vibeId),
+                        label: Text(checkin.vibeName),
                         avatar: Text(
                           checkin.vibeIcon,
                           style: const TextStyle(fontSize: 16),
