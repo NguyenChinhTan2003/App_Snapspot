@@ -25,7 +25,6 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => CheckInBottomSheet(
         checkin: checkin,
-        currentUserId: currentUserId,
       ),
     );
   }
@@ -65,7 +64,10 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black26, blurRadius: 8, offset: Offset(0, -2))
+              color: Colors.black26,
+              blurRadius: 8,
+              offset: Offset(0, -2),
+            )
           ],
         ),
         child: Column(
@@ -89,6 +91,8 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
 
@@ -125,19 +129,19 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                       final profile = enhanced.profile;
                       final category = enhanced.category;
                       final vibe = enhanced.vibe;
-                      final formattedDate = DateFormat('dd/MM/yyyy - HH:mm')
-                          .format(checkin.createdAt);
+                      final formattedDate =
+                          DateFormat('dd/MM/yyyy').format(checkin.createdAt);
 
                       final clickLikeController = Get.put(
-                        ClickLikeController(checkin,
-                            currentUserId: currentUserId),
+                        ClickLikeController(checkin),
                         tag: checkin.id,
                         permanent: false,
                       );
 
                       return Card(
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: InkWell(
                           onTap: () => _showCheckInDetail(context, checkin),
                           borderRadius: BorderRadius.circular(12),
@@ -177,21 +181,27 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                         children: [
                                           Row(
                                             children: [
-                                              GestureDetector(
-                                                onTap: () {
-                                                  if (profile != null &&
-                                                      currentUserId !=
-                                                          profile.uid) {
-                                                    _showProfile(
-                                                        context, profile.uid);
-                                                  }
-                                                },
-                                                child: Text(
-                                                  profile?.displayName ??
-                                                      "Ẩn danh",
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
+                                              Flexible(
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    if (profile != null &&
+                                                        currentUserId !=
+                                                            profile.uid) {
+                                                      _showProfile(
+                                                          context, profile.uid);
+                                                    }
+                                                  },
+                                                  child: Text(
+                                                    profile?.displayName ??
+                                                        "Ẩn danh",
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                               ),
@@ -199,8 +209,8 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                               Text(
                                                 formattedDate,
                                                 style: const TextStyle(
-                                                  color: Colors.black87,
-                                                  fontSize: 15,
+                                                  color: Colors.black54,
+                                                  fontSize: 13,
                                                 ),
                                               ),
                                             ],
@@ -217,27 +227,36 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                     padding: const EdgeInsets.only(top: 12),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        checkin.images.first,
-                                        width: double.infinity,
-                                        height: 180,
-                                        fit: BoxFit.cover,
+                                      child: AspectRatio(
+                                        aspectRatio: 16 / 9,
+                                        child: Image.network(
+                                          checkin.images.first,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                        ),
                                       ),
                                     ),
                                   ),
 
+                                const SizedBox(height: 12),
                                 // Title
                                 if (checkin.name.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 12),
-                                    child: Text(
+                                  Row(children: [
+                                    const Text("Tên địa điểm: ",
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold)),
+                                    const SizedBox(width: 8),
+                                    Text(
                                       checkin.name,
                                       style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.normal,
                                       ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ),
+                                  ]),
 
                                 const SizedBox(height: 8),
 
@@ -245,22 +264,32 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                 Row(
                                   children: [
                                     if (category != null)
-                                      Chip(
-                                        label: Text(category.name),
-                                        avatar: Image.network(
-                                          category.iconUrl,
-                                          width: 20,
-                                          height: 20,
+                                      Flexible(
+                                        child: Chip(
+                                          label: Text(
+                                            category.name,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          avatar: Image.network(
+                                            category.iconUrl,
+                                            width: 40,
+                                            height: 40,
+                                          ),
                                         ),
                                       ),
-                                    if (vibe != null)
+                                    if (vibe != null) ...[
+                                      const SizedBox(width: 6),
                                       Chip(
-                                        label: Text(vibe.name),
+                                        label: Text(
+                                          vibe.name,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                         avatar: Text(
                                           checkin.vibeIcon,
-                                          style: const TextStyle(fontSize: 16),
+                                          style: const TextStyle(fontSize: 13),
                                         ),
                                       ),
+                                    ],
                                     const Spacer(),
                                     Obx(() {
                                       return Row(
@@ -275,7 +304,10 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                              "${clickLikeController.likesCount.value}"),
+                                            "${clickLikeController.likesCount.value}",
+                                            style:
+                                                const TextStyle(fontSize: 13),
+                                          ),
                                           const SizedBox(width: 12),
                                           Icon(
                                             Icons.thumb_down,
@@ -287,7 +319,10 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                              "${clickLikeController.dislikesCount.value}"),
+                                            "${clickLikeController.dislikesCount.value}",
+                                            style:
+                                                const TextStyle(fontSize: 13),
+                                          ),
                                         ],
                                       );
                                     }),

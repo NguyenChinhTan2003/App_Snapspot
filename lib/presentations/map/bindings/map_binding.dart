@@ -11,6 +11,7 @@ class MapBinding extends Bindings {
       () => MapController(),
     );
     Get.lazyPut<NavigationController>(() => NavigationController());
+    Get.lazyPut<CategoryRepository>(() => CategoryRepository());
     Get.lazyPut<SearchFilterController>(
       () => SearchFilterController(Get.find<CategoryRepository>()),
     );

@@ -1,56 +1,49 @@
-import 'package:app_snapspot/domains/repositories/category_repository.dart';
+// widget
 import 'package:app_snapspot/presentations/map/controllers/search_filter_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class CustomSearchFilterBar extends StatelessWidget {
+class CustomSearchFilterBar extends GetView<SearchFilterController> {
   final Function(String searchText, String categoryId) onSearch;
 
-  const CustomSearchFilterBar({
-    super.key,
-    required this.onSearch,
-  });
+  const CustomSearchFilterBar({super.key, required this.onSearch});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(SearchFilterController(CategoryRepository()));
-    final width = MediaQuery.of(context).size.width;
-
     return Container(
       color: Colors.transparent,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 7, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Search Bar
           Container(
-            height: 48,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
             child: TextField(
               onChanged: (value) {
-                controller.searchText.value = value;
-                onSearch(controller.searchText.value,
-                    controller.selectedCategory.value);
+                controller.updateSearchQuery(value);
+                onSearch(value, controller.selectedCategoryId.value ?? '');
               },
               style: const TextStyle(
                 fontSize: 16,
                 color: Colors.black87,
+                height: 1.4,
               ),
               decoration: InputDecoration(
-                hintText: "Tìm kiếm",
+                hintText: "Tìm kiếm tên địa điểm",
                 hintStyle: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 16,
+                  color: Colors.grey.shade500,
+                  fontSize: 14,
                 ),
                 prefixIcon: Icon(
                   Icons.search,
@@ -58,37 +51,44 @@ class CustomSearchFilterBar extends StatelessWidget {
                   size: 22,
                 ),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
             ),
           ),
 
           const SizedBox(height: 12),
 
-          // Category Chips
+          //Category Chips
           Obx(() {
             if (controller.isLoading.value) {
               return SizedBox(
-                height: 40,
+                height: 50,
                 child: Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
-                    ),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+                  ),
+                ),
+              );
+            }
+
+            if (controller.categories.isEmpty) {
+              return const SizedBox(
+                height: 50,
+                child: Center(
+                  child: Text(
+                    "Không có danh mục",
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
                   ),
                 ),
               );
             }
 
             return SizedBox(
-              height: 40,
+              height: 42,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
@@ -96,58 +96,73 @@ class CustomSearchFilterBar extends StatelessWidget {
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final cat = controller.categories[index];
-                  final isSelected =
-                      controller.selectedCategory.value == cat.id;
 
-                  return GestureDetector(
-                    onTap: () {
-                      controller.selectCategory(cat.id);
-                      onSearch(controller.searchText.value,
-                          controller.selectedCategory.value);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              cat.iconUrl,
-                              width: width * 0.05,
-                              height: width * 0.05,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: width * 0.05,
-                                  height: width * 0.05,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade600,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
+                  return Obx(() {
+                    final isSelected =
+                        controller.selectedCategoryId.value == cat.id;
+
+                    return GestureDetector(
+                      onTap: () {
+                        controller.updateCategory(isSelected ? null : cat.id);
+                        onSearch(
+                          controller.searchQuery.value,
+                          controller.selectedCategoryId.value ?? '',
+                        );
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color:
+                              isSelected ? Colors.green : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.blue.withOpacity(0.3),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 3),
+                                  )
+                                ]
+                              : [],
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                cat.iconUrl,
+                                width: 20,
+                                height: 20,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) {
+                                  return Icon(
                                     Icons.category,
-                                    size: width * 0.03,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                );
-                              },
+                                    size: 18,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white,
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            cat.name,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black87,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                            const SizedBox(width: 6),
+                            Text(
+                              cat.name,
+                              style: TextStyle(
+                                color:
+                                    isSelected ? Colors.white : Colors.black87,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  });
                 },
               ),
             );

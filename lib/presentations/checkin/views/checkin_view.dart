@@ -33,6 +33,7 @@ class CheckinView extends GetView<CheckinController> {
                 controller: controller.spotNameController,
                 decoration: InputDecoration(
                   hintText: "Nhập tên địa điểm bạn đang check-in",
+                  hintStyle: const TextStyle(fontSize: 10),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
@@ -68,7 +69,7 @@ class CheckinView extends GetView<CheckinController> {
               const SizedBox(height: 20),
 
               // Chọn Vibe
-              const Text("Tâm trạng / vibe",
+              const Text("Tâm trạng",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               Wrap(
@@ -77,7 +78,7 @@ class CheckinView extends GetView<CheckinController> {
                   final isSelected =
                       controller.selectedVibe.value?.id == vibe.id;
                   return ChoiceChip(
-                    label: Text(vibe.name),
+                    label: Text(vibe.icon),
                     selected: isSelected,
                     onSelected: (_) => controller.selectVibe(vibe),
                   );
@@ -94,7 +95,7 @@ class CheckinView extends GetView<CheckinController> {
                 controller: controller.contentController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: "Hôm nay bạn cảm thấy thế nào ở đây?",
+                  hintText: "Bạn cảm thấy thế nào ở đây?",
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
@@ -172,7 +173,7 @@ class CheckinView extends GetView<CheckinController> {
                 child: ElevatedButton.icon(
                   onPressed: controller.submitCheckIn,
                   icon: const Icon(Icons.check),
-                  label: const Text("Đăng Check-in"),
+                  label: const Text("Check-in"),
                 ),
               ),
             ],

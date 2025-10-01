@@ -1,5 +1,4 @@
 import 'package:app_snapspot/core/common_widgets/custom_expandable_text.dart';
-import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:app_snapspot/presentations/checkin_history/views/update_checkin_bottomsheet.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +35,7 @@ class CheckInHistoryView extends StatelessWidget {
     );
   }
 
-  /// ========== STATES ==========
+  ///
   Widget _buildNotLoggedInState() => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -107,7 +106,7 @@ class CheckInHistoryView extends StatelessWidget {
         ),
       );
 
-  /// ========== LIST ==========
+  ///
   Widget _buildCheckinList(CheckInHistoryController controller) {
     return RefreshIndicator(
       onRefresh: () => controller.fetchCheckIns(),
@@ -123,14 +122,11 @@ class CheckInHistoryView extends StatelessWidget {
     );
   }
 
-  /// ========== CARD ==========
+  ///
   Widget _buildCheckinCard(
       CheckInModel checkin, CheckInHistoryController controller) {
     final clickLikeController = Get.put(
-      ClickLikeController(
-        checkin,
-        currentUserId: controller.userId,
-      ),
+      ClickLikeController(checkin),
       tag: checkin.id,
       permanent: false,
     );

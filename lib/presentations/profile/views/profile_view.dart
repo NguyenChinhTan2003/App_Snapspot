@@ -6,7 +6,6 @@ import 'package:app_snapspot/presentations/profile/controllers/profile_controlle
 import 'package:app_snapspot/presentations/profile/views/update_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -404,6 +403,7 @@ class ProfileView extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 15),
                           ],
                         ),
                       ),

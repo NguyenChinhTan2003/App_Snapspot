@@ -1,4 +1,5 @@
 import 'package:app_snapspot/core/common_widgets/custom_expandable_text.dart';
+import 'package:app_snapspot/core/common_widgets/custom_images_view.dart';
 import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:app_snapspot/presentations/profile/views/profile_public.dart';
@@ -43,8 +44,7 @@ class CheckInBottomSheet extends StatelessWidget {
     );
 
     final likeController = Get.put(
-      ClickLikeController(checkin,
-          currentUserId: authController.firebaseUser.value?.uid),
+      ClickLikeController(checkin),
       tag: "like-${checkin.id}",
     );
 
@@ -139,15 +139,28 @@ class CheckInBottomSheet extends StatelessWidget {
 
               // Main Image
               if (checkin.images.isNotEmpty)
-                Hero(
-                  tag: "checkin-${checkin.id}",
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      checkin.images.first,
-                      width: double.infinity,
-                      height: 220,
-                      fit: BoxFit.cover,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CustomImagesView(
+                          imageUrls: checkin.images,
+                          initialIndex: 0,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Hero(
+                    tag: checkin.images.first,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        checkin.images.first,
+                        width: double.infinity,
+                        height: 220,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
@@ -169,32 +182,6 @@ class CheckInBottomSheet extends StatelessWidget {
                     avatar: Text(checkin.vibeIcon,
                         style: const TextStyle(fontSize: 16)),
                   ),
-                  const Spacer(),
-                  Obx(() {
-                    return Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.thumb_up,
-                              color: likeController.isLiked.value
-                                  ? Colors.blue
-                                  : Colors.grey),
-                          onPressed: () =>
-                              likeController.toggleReaction("like"),
-                        ),
-                        Text("${likeController.likesCount.value}"),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: Icon(Icons.thumb_down,
-                              color: likeController.isDisliked.value
-                                  ? Colors.red
-                                  : Colors.grey),
-                          onPressed: () =>
-                              likeController.toggleReaction("dislike"),
-                        ),
-                        Text("${likeController.dislikesCount.value}"),
-                      ],
-                    );
-                  }),
                 ],
               ),
 
@@ -266,8 +253,38 @@ class CheckInBottomSheet extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Ảnh khác",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    Row(
+                      children: [
+                        const Text("Ảnh khác",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Spacer(),
+                        Obx(() {
+                          return Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.thumb_up,
+                                    color: likeController.isLiked.value
+                                        ? Colors.blue
+                                        : Colors.grey),
+                                onPressed: () =>
+                                    likeController.toggleReaction("like"),
+                              ),
+                              Text("${likeController.likesCount.value}"),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                icon: Icon(Icons.thumb_down,
+                                    color: likeController.isDisliked.value
+                                        ? Colors.red
+                                        : Colors.grey),
+                                onPressed: () =>
+                                    likeController.toggleReaction("dislike"),
+                              ),
+                              Text("${likeController.dislikesCount.value}"),
+                            ],
+                          );
+                        }),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 100,
@@ -275,11 +292,34 @@ class CheckInBottomSheet extends StatelessWidget {
                         scrollDirection: Axis.horizontal,
                         itemCount: checkin.images.length - 1,
                         separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemBuilder: (_, index) => ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(checkin.images[index + 1],
-                              width: 120, height: 100, fit: BoxFit.cover),
-                        ),
+                        itemBuilder: (_, index) {
+                          final imgUrl = checkin.images[index + 1];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CustomImagesView(
+                                    imageUrls: checkin.images,
+                                    initialIndex: index + 1,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Hero(
+                              tag: imgUrl,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  imgUrl,
+                                  width: 120,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],

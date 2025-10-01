@@ -71,6 +71,8 @@ class MapController extends GetxController {
     mapboxMap = map;
     debugPrint("✅ Map created");
 
+    await mapboxMap!.loadStyleURI("mapbox://styles/mapbox/satellite-v9");
+
     mapboxMap?.location.updateSettings(
       LocationComponentSettings(
         enabled: true,

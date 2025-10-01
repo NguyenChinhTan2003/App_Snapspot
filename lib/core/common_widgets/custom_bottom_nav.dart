@@ -18,12 +18,16 @@ class CustomBottomNav extends StatelessWidget {
         currentIndex: nav.selectedIndex.value,
         onTap: nav.changeIndex,
         type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.black87,
+        showUnselectedLabels: true,
         items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
-          const BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+          const BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Bản đồ'),
+          const BottomNavigationBarItem(
+              icon: Icon(Icons.history), label: 'Lịch sử'),
           BottomNavigationBarItem(
             icon: Icon(isLoggedIn ? Icons.person : Icons.login),
-            label: isLoggedIn ? 'Profile' : 'Login',
+            label: isLoggedIn ? 'Hồ sơ' : 'Đăng nhập',
           ),
         ],
       );
