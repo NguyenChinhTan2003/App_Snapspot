@@ -6,6 +6,7 @@ import 'package:app_snapspot/data/models/spot_model.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
 import 'package:app_snapspot/domains/repositories/spot_repository.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/locationCheckins_controller.dart';
+import 'package:app_snapspot/presentations/map/controllers/search_filter_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -47,6 +48,16 @@ class MapController extends GetxController {
     super.onInit();
     _loadMapboxToken();
     _initLocation();
+
+    final filterCtrl = Get.find<SearchFilterController>();
+    ever(filterCtrl.selectedCategoryId, (String? catId) {
+      selectedCategory.value = catId;
+      reloadSpotsInView();
+    });
+    ever(filterCtrl.searchQuery, (String query) {
+      searchQuery.value = query;
+      reloadSpotsInView();
+    });
   }
 
   void _initLocation() {
@@ -191,17 +202,6 @@ class MapController extends GetxController {
     _annotationIdToSpotId[annotation.id] = spot.id;
   }
 
-  // Filter + Search
-  void updateCategory(String? category) {
-    selectedCategory.value = category;
-    reloadSpotsInView();
-  }
-
-  void updateSearchQuery(String query) {
-    searchQuery.value = query;
-    reloadSpotsInView();
-  }
-
   // Loading Spots by Bounding Box
   void onCameraChanged(CameraChangedEventData eventData) async {
     // Chỉ load khi có filter hoặc search
@@ -216,32 +216,6 @@ class MapController extends GetxController {
         await loadMarkersInView(bounds);
       }
     }
-  }
-
-  Future<void> reloadSpotsInView() async {
-    final cameraState = await mapboxMap?.getCameraState();
-    if (cameraState == null) return;
-
-    final bounds = await mapboxMap?.coordinateBoundsForCamera(
-      cameraState.toCameraOptions(),
-    );
-    if (bounds != null) {
-      // Xóa toàn bộ marker cũ trước khi load lại
-      await clearAllMarkers();
-
-      await loadMarkersInView(bounds);
-    }
-  }
-
-  Future<void> clearAllMarkers() async {
-    if (_annotationManager == null) return;
-
-    // Xóa annotations khỏi map
-    await _annotationManager!.deleteAll();
-
-    // Clear cache
-    _markerCacheById.clear();
-    _annotationIdToSpotId.clear();
   }
 
   Future<void> loadMarkersInView(CoordinateBounds bounds) async {
@@ -275,41 +249,103 @@ class MapController extends GetxController {
     }
   }
 
-  Future<void> focusOnSpotByName(String name) async {
-    if (mapboxMap == null || name.isEmpty) return;
+  Future<void> clearAllMarkers() async {
+    if (_annotationManager == null) return;
 
-    try {
-      final spotRepo = SpotRepository();
-      final spot = await spotRepo.getSpotByName(name);
+    // Xóa annotations khỏi map
+    await _annotationManager!.deleteAll();
 
-      if (spot != null) {
-        // Thêm marker nếu chưa có
-        if (!_markerCacheById.containsKey(spot.id)) {
-          await addSpotMarker(spot);
-        }
+    // Clear cache
+    _markerCacheById.clear();
+  }
 
-        // Move camera đến marker
-        await mapboxMap?.setCamera(
-          CameraOptions(
-            center: Point(
-              coordinates: Position(spot.longitude, spot.latitude),
-            ),
-            zoom: 17.5,
-          ),
-        );
+  Future<void> reloadSpotsInView() async {
+    final cameraState = await mapboxMap?.getCameraState();
+    if (cameraState == null) return;
 
-        debugPrint("✅ Focused on spot: ${spot.name}");
-      } else {
-        debugPrint("⚠️ No spot found with name: $name");
+    final bounds = await mapboxMap?.coordinateBoundsForCamera(
+      cameraState.toCameraOptions(),
+    );
+    if (bounds == null) return;
+
+    if ((selectedCategory.value == null || selectedCategory.value!.isEmpty) &&
+        searchQuery.value.isEmpty) {
+      await clearAllMarkers();
+      debugPrint("Clear marker");
+      return;
+    }
+
+    await clearAllMarkers();
+    await loadMarkersInView(bounds);
+  }
+
+  // Filter
+  void updateCategory(String? category) {
+    selectedCategory.value = category;
+    reloadSpotsInView();
+  }
+
+  // Search
+  void updateSearchQuery(String query) {
+    searchQuery.value = query;
+    reloadSpotsInView();
+  }
+
+  Future<void> focusOnSpotsByName(
+    String name, {
+    required double currentLat,
+    required double currentLng,
+  }) async {
+    final spotRepo = SpotRepository();
+    final spots = await spotRepo.getSpotsByNameNearLocation(
+      name: name,
+      lat: currentLat,
+      lng: currentLng,
+      radiusInKm: 10,
+    );
+
+    if (spots.isEmpty) {
+      debugPrint(" Không tìm thấy spot nào tên: $name trong bán kính 5km");
+      return;
+    }
+
+    if (spots.length == 1) {
+      // chỉ có 1 spot → focus vào nó
+      final spot = spots.first;
+      await mapboxMap?.setCamera(CameraOptions(
+        center: Point(coordinates: Position(spot.longitude, spot.latitude)),
+        zoom: 17.5,
+      ));
+      await addSpotMarker(spot);
+    } else {
+      // nhiều spot → hiển thị hết trong camera bounds
+      final points = spots
+          .map((s) => Point(coordinates: Position(s.longitude, s.latitude)))
+          .toList();
+
+      final camera = await mapboxMap?.cameraForCoordinates(
+        points,
+        MbxEdgeInsets(
+          top: 80,
+          left: 80,
+          bottom: 80,
+          right: 80,
+        ),
+        null,
+        null,
+      );
+
+      if (camera != null) {
+        await mapboxMap?.setCamera(camera);
       }
-    } catch (e) {
-      debugPrint("❌ Error focusing on spot: $e");
+
+      for (final spot in spots) {
+        await addSpotMarker(spot);
+      }
     }
   }
 
-  // ==========================
   // Marker click
-  // ==========================
   Future<void> onMarkerTapped(String spotId) async {
     if (isBottomSheetOpen.value) return;
     isBottomSheetOpen.value = true;

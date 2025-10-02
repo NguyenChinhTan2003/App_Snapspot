@@ -246,6 +246,31 @@ class CheckInBottomSheet extends StatelessWidget {
                   child: ExpandableText(text: checkin.content, trimLines: 2),
                 ),
 
+              const SizedBox(height: 12),
+              Obx(() {
+                return Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.thumb_up,
+                          color: likeController.isLiked.value
+                              ? Colors.blue
+                              : Colors.grey),
+                      onPressed: () => likeController.toggleReaction("like"),
+                    ),
+                    Text("${likeController.likesCount.value}"),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: Icon(Icons.thumb_down,
+                          color: likeController.isDisliked.value
+                              ? Colors.red
+                              : Colors.grey),
+                      onPressed: () => likeController.toggleReaction("dislike"),
+                    ),
+                    Text("${likeController.dislikesCount.value}"),
+                  ],
+                );
+              }),
+
               const SizedBox(height: 16),
 
               // Additional images
@@ -253,38 +278,8 @@ class CheckInBottomSheet extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Text("Ảnh khác",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        const Spacer(),
-                        Obx(() {
-                          return Row(
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.thumb_up,
-                                    color: likeController.isLiked.value
-                                        ? Colors.blue
-                                        : Colors.grey),
-                                onPressed: () =>
-                                    likeController.toggleReaction("like"),
-                              ),
-                              Text("${likeController.likesCount.value}"),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: Icon(Icons.thumb_down,
-                                    color: likeController.isDisliked.value
-                                        ? Colors.red
-                                        : Colors.grey),
-                                onPressed: () =>
-                                    likeController.toggleReaction("dislike"),
-                              ),
-                              Text("${likeController.dislikesCount.value}"),
-                            ],
-                          );
-                        }),
-                      ],
-                    ),
+                    const Text("Ảnh khác",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 100,

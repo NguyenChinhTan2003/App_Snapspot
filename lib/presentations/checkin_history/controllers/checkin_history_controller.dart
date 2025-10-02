@@ -1,5 +1,6 @@
 import 'package:app_snapspot/applications/services/mapbox_service.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
+import 'package:diacritic/diacritic.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:app_snapspot/data/models/checkin_model.dart';
@@ -67,16 +68,21 @@ class CheckInHistoryController extends GetxController {
     }
   }
 
+  String normalize(String input) {
+    return removeDiacritics(input).toLowerCase().trim();
+  }
+
   void _applyFilter() {
-    final query = searchQuery.value.trim().toLowerCase();
+    final query = normalize(searchQuery.value);
 
     if (query.isEmpty) {
       filteredCheckins.assignAll(checkins);
     } else {
       filteredCheckins.assignAll(
         checkins.where((c) {
-          final name = (c.name ?? "").trim().toLowerCase();
-          return name == query;
+          final name = normalize(c.name ?? "");
+          final content = normalize(c.content ?? "");
+          return name.contains(query) || content.contains(query);
         }).toList(),
       );
     }

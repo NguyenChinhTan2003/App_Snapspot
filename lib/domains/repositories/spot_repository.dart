@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_snapspot/data/models/spot_model.dart';
 
@@ -118,18 +120,81 @@ class SpotRepository {
     }
   }
 
-  Future<SpotModel?> getSpotByName(String name) async {
+  // lấy Spot theo tên
+  Future<List<SpotModel>> getSpotsByName(String name) async {
     final query = await FirebaseFirestore.instance
         .collection("spots")
         .where("name", isEqualTo: name)
-        .limit(1)
         .get();
 
-    if (query.docs.isEmpty) return null;
-
-    final doc = query.docs.first;
-    return SpotModel.fromJson(doc.data()!..['id'] = doc.id);
+    return query.docs.map((doc) {
+      return SpotModel.fromJson(doc.data()!..['id'] = doc.id);
+    }).toList();
   }
+
+  Future<List<SpotModel>> getSpotsByNameNearLocation({
+    required String name,
+    required double lat,
+    required double lng,
+    double radiusInKm = 10,
+    String? category,
+  }) async {
+    // Query theo tên
+    final query =
+        await _db.collection("spots").where("name", isEqualTo: name).get();
+
+    final spots = query.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return SpotModel.fromJson(data);
+    }).toList();
+
+    // Lọc theo bán kính
+    final filtered = spots.where((spot) {
+      final d = _calculateDistance(
+        lat,
+        lng,
+        spot.latitude,
+        spot.longitude,
+      );
+      return d <= radiusInKm;
+    }).toList();
+
+    // Lọc thêm theo category
+    final categoryFiltered = filtered.where((spot) {
+      return category == null ||
+          category.isEmpty ||
+          spot.categoryId == category;
+    }).toList();
+
+    // Sort theo khoảng cách
+    categoryFiltered.sort((a, b) {
+      final distA = _calculateDistance(lat, lng, a.latitude, a.longitude);
+      final distB = _calculateDistance(lat, lng, b.latitude, b.longitude);
+      return distA.compareTo(distB);
+    });
+
+    return categoryFiltered;
+  }
+
+  /// Tính khoảng cách Haversine giữa 2 tọa độ (km)
+  double _calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371;
+    final dLat = _deg2rad(lat2 - lat1);
+    final dLon = _deg2rad(lon2 - lon1);
+
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_deg2rad(lat1)) *
+            cos(_deg2rad(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return R * c;
+  }
+
+  double _deg2rad(double deg) => deg * (pi / 180);
 
   /// Lấy Spot trong bounding box + filter
   Future<List<SpotModel>> getSpotsInBoundingBoxFiltered({

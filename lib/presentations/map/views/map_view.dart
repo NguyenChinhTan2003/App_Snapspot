@@ -51,7 +51,7 @@ class MapPage extends GetView<MapController> {
           // Thanh search + filter categories
           Obx(() {
             if (controller.mapMode.value == MapMode.selecting) {
-              return const SizedBox.shrink(); // Ẩn khi selecting
+              return const SizedBox.shrink();
             }
             return Positioned(
               top: MediaQuery.of(context).padding.top + 8,
@@ -64,7 +64,14 @@ class MapPage extends GetView<MapController> {
                   );
 
                   if (searchText.isNotEmpty) {
-                    controller.focusOnSpotByName(searchText);
+                    final loc = controller.currentLocation.value;
+                    if (loc != null) {
+                      controller.focusOnSpotsByName(
+                        searchText,
+                        currentLat: loc.coordinates.lat.toDouble(),
+                        currentLng: loc.coordinates.lng.toDouble(),
+                      );
+                    }
                   } else {
                     controller.updateSearchQuery(searchText);
                   }
