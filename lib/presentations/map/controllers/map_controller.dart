@@ -275,6 +275,38 @@ class MapController extends GetxController {
     }
   }
 
+  Future<void> focusOnSpotByName(String name) async {
+    if (mapboxMap == null || name.isEmpty) return;
+
+    try {
+      final spotRepo = SpotRepository();
+      final spot = await spotRepo.getSpotByName(name);
+
+      if (spot != null) {
+        // Thêm marker nếu chưa có
+        if (!_markerCacheById.containsKey(spot.id)) {
+          await addSpotMarker(spot);
+        }
+
+        // Move camera đến marker
+        await mapboxMap?.setCamera(
+          CameraOptions(
+            center: Point(
+              coordinates: Position(spot.longitude, spot.latitude),
+            ),
+            zoom: 17.5,
+          ),
+        );
+
+        debugPrint("✅ Focused on spot: ${spot.name}");
+      } else {
+        debugPrint("⚠️ No spot found with name: $name");
+      }
+    } catch (e) {
+      debugPrint("❌ Error focusing on spot: $e");
+    }
+  }
+
   // ==========================
   // Marker click
   // ==========================

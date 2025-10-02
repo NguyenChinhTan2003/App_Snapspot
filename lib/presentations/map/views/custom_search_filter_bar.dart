@@ -1,6 +1,7 @@
 // widget
 import 'package:app_snapspot/presentations/map/controllers/search_filter_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class CustomSearchFilterBar extends GetView<SearchFilterController> {
@@ -55,6 +56,10 @@ class CustomSearchFilterBar extends GetView<SearchFilterController> {
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                    RegExp(r'[\p{L}0-9\s]', unicode: true)),
+              ],
             ),
           ),
 

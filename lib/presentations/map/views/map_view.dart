@@ -59,9 +59,15 @@ class MapPage extends GetView<MapController> {
               right: 0,
               child: CustomSearchFilterBar(
                 onSearch: (searchText, categoryId) {
-                  controller.updateSearchQuery(searchText);
                   controller.updateCategory(
-                      categoryId.isNotEmpty ? categoryId : null);
+                    categoryId.isNotEmpty ? categoryId : null,
+                  );
+
+                  if (searchText.isNotEmpty) {
+                    controller.focusOnSpotByName(searchText);
+                  } else {
+                    controller.updateSearchQuery(searchText);
+                  }
                 },
               ),
             );

@@ -10,11 +10,13 @@ class CheckInHistoryController extends GetxController {
   late final CheckInModel checkin;
 
   var checkins = <CheckInModel>[].obs;
+  var filteredCheckins = <CheckInModel>[].obs;
   var isLoading = true.obs;
   var selectedCheckin = Rxn<CheckInModel>();
   var selectedAddress = "".obs;
   var isAddressLoading = false.obs;
   var addresses = <String, String>{}.obs;
+  var searchQuery = "".obs;
 
   AuthController get _authController => Get.find<AuthController>();
   String? get userId => _authController.firebaseUser.value?.uid;
@@ -29,6 +31,7 @@ class CheckInHistoryController extends GetxController {
         fetchCheckIns();
       } else {
         checkins.clear();
+        filteredCheckins.clear();
       }
     });
 
@@ -38,6 +41,7 @@ class CheckInHistoryController extends GetxController {
     } else {
       isLoading.value = false;
     }
+    ever(searchQuery, (_) => _applyFilter());
   }
 
   Future<void> refreshAfterUpdate() async {
@@ -51,8 +55,8 @@ class CheckInHistoryController extends GetxController {
       isLoading.value = true;
       final checkinsData = await _repository.getUserCheckIns(userId!);
       checkins.value = checkinsData;
+      filteredCheckins.assignAll(checkinsData);
 
-      // Lấy địa chỉ cho từng checkin
       for (var c in checkinsData) {
         _fetchAddressForCheckin(c);
       }
@@ -61,6 +65,26 @@ class CheckInHistoryController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void _applyFilter() {
+    final query = searchQuery.value.trim().toLowerCase();
+
+    if (query.isEmpty) {
+      filteredCheckins.assignAll(checkins);
+    } else {
+      filteredCheckins.assignAll(
+        checkins.where((c) {
+          final name = (c.name ?? "").trim().toLowerCase();
+          return name == query;
+        }).toList(),
+      );
+    }
+  }
+
+  void updateSearchQuery(String query) {
+    debugPrint("Search query: $query");
+    searchQuery.value = query.trim();
   }
 
   Future<void> _fetchAddressForCheckin(CheckInModel checkin) async {

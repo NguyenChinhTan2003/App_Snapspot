@@ -110,14 +110,36 @@ class CheckInHistoryView extends StatelessWidget {
   Widget _buildCheckinList(CheckInHistoryController controller) {
     return RefreshIndicator(
       onRefresh: () => controller.fetchCheckIns(),
-      child: ListView.builder(
-        padding:
-            const EdgeInsets.fromLTRB(8, 8, 8, kBottomNavigationBarHeight + 30),
-        itemCount: controller.checkins.length,
-        itemBuilder: (context, index) {
-          final checkin = controller.checkins[index];
-          return _buildCheckinCard(checkin, controller);
-        },
+      child: Column(
+        children: [
+          // Thanh search
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              onChanged: controller.updateSearchQuery,
+              decoration: InputDecoration(
+                hintText: "Tìm kiếm check-in...",
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Obx(() => ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(
+                      8, 8, 8, kBottomNavigationBarHeight + 30),
+                  itemCount: controller.filteredCheckins.length,
+                  itemBuilder: (context, index) {
+                    final checkin = controller.filteredCheckins[index];
+                    return _buildCheckinCard(checkin, controller);
+                  },
+                )),
+          ),
+        ],
       ),
     );
   }

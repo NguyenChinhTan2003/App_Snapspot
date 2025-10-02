@@ -118,6 +118,19 @@ class SpotRepository {
     }
   }
 
+  Future<SpotModel?> getSpotByName(String name) async {
+    final query = await FirebaseFirestore.instance
+        .collection("spots")
+        .where("name", isEqualTo: name)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) return null;
+
+    final doc = query.docs.first;
+    return SpotModel.fromJson(doc.data()!..['id'] = doc.id);
+  }
+
   /// Lấy Spot trong bounding box + filter
   Future<List<SpotModel>> getSpotsInBoundingBoxFiltered({
     required double minLat,
