@@ -11,13 +11,8 @@ import 'package:app_snapspot/presentations/checkin/controllers/checkin_detail_co
 
 class CheckInBottomSheet extends StatelessWidget {
   final CheckInModel checkin;
-  final String? currentUserId;
 
-  const CheckInBottomSheet({
-    super.key,
-    required this.checkin,
-    this.currentUserId,
-  });
+  const CheckInBottomSheet({super.key, required this.checkin});
 
   void _showProfile(BuildContext context, String uid) {
     final size = MediaQuery.of(context).size;
@@ -37,7 +32,6 @@ class CheckInBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authController = Get.find<AuthController>();
     final controller = Get.put(
       CheckInDetailController(checkin.userId, checkin),
       tag: checkin.id,
@@ -64,6 +58,7 @@ class CheckInBottomSheet extends StatelessWidget {
         child: Obx(() {
           final user = controller.user.value;
           final isLoading = controller.isLoading.value;
+          final currentUserId = likeController.currentUserId.value;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +162,7 @@ class CheckInBottomSheet extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // Category + Vibe + Like/Dislike
+              // Category + Vibe
               Row(
                 children: [
                   if (checkin.categoryIcon.isNotEmpty)
@@ -247,29 +242,34 @@ class CheckInBottomSheet extends StatelessWidget {
                 ),
 
               const SizedBox(height: 12),
-              Obx(() {
-                return Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.thumb_up,
+
+              // Like / Dislike
+              Row(
+                children: [
+                  Obx(() => IconButton(
+                        icon: Icon(
+                          Icons.thumb_up,
                           color: likeController.isLiked.value
                               ? Colors.blue
-                              : Colors.grey),
-                      onPressed: () => likeController.toggleReaction("like"),
-                    ),
-                    Text("${likeController.likesCount.value}"),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(Icons.thumb_down,
+                              : Colors.grey,
+                        ),
+                        onPressed: () => likeController.toggleReaction("like"),
+                      )),
+                  Obx(() => Text("${likeController.likesCount.value}")),
+                  const SizedBox(width: 8),
+                  Obx(() => IconButton(
+                        icon: Icon(
+                          Icons.thumb_down,
                           color: likeController.isDisliked.value
                               ? Colors.red
-                              : Colors.grey),
-                      onPressed: () => likeController.toggleReaction("dislike"),
-                    ),
-                    Text("${likeController.dislikesCount.value}"),
-                  ],
-                );
-              }),
+                              : Colors.grey,
+                        ),
+                        onPressed: () =>
+                            likeController.toggleReaction("dislike"),
+                      )),
+                  Obx(() => Text("${likeController.dislikesCount.value}")),
+                ],
+              ),
 
               const SizedBox(height: 16),
 

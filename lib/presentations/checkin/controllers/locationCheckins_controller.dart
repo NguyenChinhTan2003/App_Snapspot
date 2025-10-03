@@ -46,7 +46,7 @@ class LocationCheckInsController extends GetxController {
   void onInit() {
     super.onInit();
     debugPrint(
-        "👉 LocationCheckInsController created: spotId=$spotId, currentUserId=$currentUserId");
+        "LocationCheckInsController created: spotId=$spotId, currentUserId=$currentUserId");
     fetchCheckIns();
   }
 

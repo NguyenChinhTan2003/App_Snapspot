@@ -191,7 +191,7 @@ class CheckinController extends GetxController {
         ...checkIn.toJson(),
         "spotId": spot.id,
       };
-      Get.back(result: result);
+      Get.back(result: spot);
 
       // Upload ảnh song song
       if (images.isNotEmpty) {

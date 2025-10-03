@@ -297,40 +297,53 @@ class MapController extends GetxController {
     required double currentLng,
   }) async {
     final spotRepo = SpotRepository();
-    final spots = await spotRepo.getSpotsByNameNearLocation(
-      name: name,
-      lat: currentLat,
-      lng: currentLng,
-      radiusInKm: 10,
-    );
 
-    if (spots.isEmpty) {
-      debugPrint(" Không tìm thấy spot nào tên: $name trong bán kính 5km");
+    // Lấy tất cả spots trùng tên
+    final allSpots = await spotRepo.getSpotsByName(name);
+
+    if (allSpots.isEmpty) {
+      debugPrint("Không tìm thấy spot nào tên: $name");
       return;
     }
 
-    if (spots.length == 1) {
-      // chỉ có 1 spot → focus vào nó
-      final spot = spots.first;
+    List<SpotModel> spotsToFocus;
+
+    if (allSpots.length == 1) {
+      // chỉ có 1 spot → focus luôn, bỏ qua khoảng cách
+      spotsToFocus = allSpots;
+    } else {
+      // nhiều spot → chỉ lấy những spot trong bán kính 10km
+      spotsToFocus = allSpots.where((spot) {
+        final distanceInMeters = geo.Geolocator.distanceBetween(
+          currentLat,
+          currentLng,
+          spot.latitude,
+          spot.longitude,
+        );
+        return distanceInMeters <= 10000; // 10km
+      }).toList();
+    }
+
+    if (spotsToFocus.isEmpty) {
+      debugPrint("Không có spot nào trong bán kính 10km");
+      return;
+    }
+
+    if (spotsToFocus.length == 1) {
+      final spot = spotsToFocus.first;
       await mapboxMap?.setCamera(CameraOptions(
         center: Point(coordinates: Position(spot.longitude, spot.latitude)),
         zoom: 17.5,
       ));
       await addSpotMarker(spot);
     } else {
-      // nhiều spot → hiển thị hết trong camera bounds
-      final points = spots
+      final points = spotsToFocus
           .map((s) => Point(coordinates: Position(s.longitude, s.latitude)))
           .toList();
 
       final camera = await mapboxMap?.cameraForCoordinates(
         points,
-        MbxEdgeInsets(
-          top: 80,
-          left: 80,
-          bottom: 80,
-          right: 80,
-        ),
+        MbxEdgeInsets(top: 80, left: 80, bottom: 80, right: 80),
         null,
         null,
       );
@@ -339,7 +352,7 @@ class MapController extends GetxController {
         await mapboxMap?.setCamera(camera);
       }
 
-      for (final spot in spots) {
+      for (final spot in spotsToFocus) {
         await addSpotMarker(spot);
       }
     }

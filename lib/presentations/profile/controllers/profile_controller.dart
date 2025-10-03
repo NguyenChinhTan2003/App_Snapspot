@@ -55,7 +55,6 @@ class ProfileController extends GetxController {
         await _repository.saveOrUpdateProfile(newProfile);
         profile.value = newProfile;
       } else {
-        // giữ nguyên displayName nếu đã có
         if (data.email != email) {
           await _repository.updateFields(uid, email: email);
           data = data.copyWith(email: email);

@@ -54,19 +54,6 @@ class CheckInHistoryView extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 14, color: Colors.grey[600])),
               const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () {
-                  // Get.toNamed('/login');
-                },
-                icon: const Icon(Icons.login),
-                label: const Text("Đăng nhập"),
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25)),
-                ),
-              )
             ],
           ),
         ),
@@ -246,52 +233,78 @@ class CheckInHistoryView extends StatelessWidget {
                 children: [
                   Row(
                     children: [
+                      // Category icon
                       if (checkin.categoryIcon.isNotEmpty)
-                        Chip(
-                          label: Text(checkin.categoryName),
-                          avatar: Image.network(
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(6),
+                          child: Image.network(
                             checkin.categoryIcon,
-                            width: 20,
-                            height: 20,
+                            fit: BoxFit.contain,
                           ),
                         ),
+
                       const SizedBox(width: 8),
-                      Chip(
-                        label: Text(checkin.vibeName),
-                        avatar: Text(
+
+                      // Vibe icon
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
                           checkin.vibeIcon,
-                          style: const TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 23),
                         ),
                       ),
                     ],
                   ),
+
                   const Spacer(),
                   // Like/Dislike
-                  Obx(() {
-                    return Row(
-                      children: [
-                        Icon(
-                          Icons.thumb_up,
-                          size: 18,
-                          color: clickLikeController.isLiked.value
-                              ? Colors.blue
-                              : Colors.grey,
-                        ),
-                        const SizedBox(width: 4),
-                        Text("${clickLikeController.likesCount.value}"),
-                        const SizedBox(width: 12),
-                        Icon(
-                          Icons.thumb_down,
-                          size: 18,
-                          color: clickLikeController.isDisliked.value
-                              ? Colors.red
-                              : Colors.grey,
-                        ),
-                        const SizedBox(width: 4),
-                        Text("${clickLikeController.dislikesCount.value}"),
-                      ],
-                    );
-                  }),
+                  Row(
+                    children: [
+                      Obx(() => IconButton(
+                            icon: Icon(
+                              Icons.thumb_up,
+                              size: 20,
+                              color: clickLikeController.isLiked.value
+                                  ? Colors.blue
+                                  : Colors.grey,
+                            ),
+                            onPressed: () =>
+                                clickLikeController.toggleReaction("like"),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          )),
+                      Obx(() =>
+                          Text("${clickLikeController.likesCount.value}")),
+                      const SizedBox(width: 12),
+                      Obx(() => IconButton(
+                            icon: Icon(
+                              Icons.thumb_down,
+                              size: 20,
+                              color: clickLikeController.isDisliked.value
+                                  ? Colors.red
+                                  : Colors.grey,
+                            ),
+                            onPressed: () =>
+                                clickLikeController.toggleReaction("dislike"),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          )),
+                      Obx(() =>
+                          Text("${clickLikeController.dislikesCount.value}")),
+                    ],
+                  ),
                 ],
               ),
 
