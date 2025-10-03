@@ -74,7 +74,7 @@ class MapController extends GetxController {
         debugPrint("✅ Token loaded");
       }
     } catch (e) {
-      debugPrint("❌ Error loading token: $e");
+      debugPrint("Error loading token: $e");
     }
   }
 
@@ -137,7 +137,7 @@ class MapController extends GetxController {
         CameraOptions(center: point, zoom: 17.0),
       );
     } catch (e) {
-      debugPrint("❌ Error getting current location: $e");
+      debugPrint("Error getting current location: $e");
     }
   }
 
@@ -168,7 +168,7 @@ class MapController extends GetxController {
         cancelLocationSelection();
       }
     } catch (e) {
-      debugPrint("❌ Error getting coordinates: $e");
+      debugPrint("Error getting coordinates: $e");
     }
   }
 
@@ -241,9 +241,9 @@ class MapController extends GetxController {
       }
 
       debugPrint(
-          "✅ Loaded $newCount new markers (cache=${_markerCacheById.length})");
+          "Loaded $newCount new markers (cache=${_markerCacheById.length})");
     } catch (e) {
-      debugPrint("❌ Error loading markers: $e");
+      debugPrint("Error loading markers: $e");
     } finally {
       isLoading.value = false;
     }
@@ -306,55 +306,52 @@ class MapController extends GetxController {
       return;
     }
 
-    List<SpotModel> spotsToFocus;
-
+    // Nếu chỉ có 1 spot → focus luôn
     if (allSpots.length == 1) {
-      // chỉ có 1 spot → focus luôn, bỏ qua khoảng cách
-      spotsToFocus = allSpots;
-    } else {
-      // nhiều spot → chỉ lấy những spot trong bán kính 10km
-      spotsToFocus = allSpots.where((spot) {
-        final distanceInMeters = geo.Geolocator.distanceBetween(
-          currentLat,
-          currentLng,
-          spot.latitude,
-          spot.longitude,
-        );
-        return distanceInMeters <= 10000; // 10km
-      }).toList();
-    }
-
-    if (spotsToFocus.isEmpty) {
-      debugPrint("Không có spot nào trong bán kính 10km");
-      return;
-    }
-
-    if (spotsToFocus.length == 1) {
-      final spot = spotsToFocus.first;
+      final spot = allSpots.first;
       await mapboxMap?.setCamera(CameraOptions(
         center: Point(coordinates: Position(spot.longitude, spot.latitude)),
         zoom: 17.5,
       ));
       await addSpotMarker(spot);
-    } else {
-      final points = spotsToFocus
-          .map((s) => Point(coordinates: Position(s.longitude, s.latitude)))
-          .toList();
+      return;
+    }
 
-      final camera = await mapboxMap?.cameraForCoordinates(
-        points,
-        MbxEdgeInsets(top: 80, left: 80, bottom: 80, right: 80),
-        null,
-        null,
+    // Tìm spot trong bán kính 10km tính từ spot đầu tiên
+    final baseSpot = allSpots.first;
+    final nearbySpots = allSpots.where((spot) {
+      final distanceInMeters = geo.Geolocator.distanceBetween(
+        baseSpot.latitude,
+        baseSpot.longitude,
+        spot.latitude,
+        spot.longitude,
       );
+      return distanceInMeters <= 10000;
+    }).toList();
 
-      if (camera != null) {
-        await mapboxMap?.setCamera(camera);
-      }
+    // gom đủ trong 10km
+    final spotsToFocus =
+        (nearbySpots.length == allSpots.length) ? nearbySpots : allSpots;
 
-      for (final spot in spotsToFocus) {
-        await addSpotMarker(spot);
-      }
+    // Fit camera để thấy tất cả spot
+    final points = spotsToFocus
+        .map((s) => Point(coordinates: Position(s.longitude, s.latitude)))
+        .toList();
+
+    final camera = await mapboxMap?.cameraForCoordinates(
+      points,
+      MbxEdgeInsets(top: 170, left: 170, bottom: 170, right: 170),
+      null,
+      null,
+    );
+
+    if (camera != null) {
+      await mapboxMap?.setCamera(camera);
+    }
+
+    // Add marker cho tất cả
+    for (final spot in spotsToFocus) {
+      await addSpotMarker(spot);
     }
   }
 
@@ -398,7 +395,7 @@ class MapController extends GetxController {
         backgroundColor: Colors.transparent,
       );
     } catch (e) {
-      debugPrint("❌ Error loading spot: $e");
+      debugPrint("Error loading spot: $e");
     } finally {
       isBottomSheetOpen.value = false;
     }
