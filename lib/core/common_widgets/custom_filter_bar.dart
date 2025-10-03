@@ -23,10 +23,10 @@ class CustomFilterBar extends StatelessWidget {
                     value: CheckInSortOption.oldest, child: Text("Cũ nhất")),
                 PopupMenuItem(
                     value: CheckInSortOption.mostLiked,
-                    child: Text("Nhiều like nhất")),
+                    child: Text("Nhiều Like nhất")),
                 PopupMenuItem(
                     value: CheckInSortOption.mostDisliked,
-                    child: Text("Nhiều dislike nhất")),
+                    child: Text("Nhiều UnLike nhất")),
               ],
             )),
 
@@ -49,24 +49,29 @@ class CustomFilterBar extends StatelessWidget {
             )),
 
         // Vibe filter
-        Obx(() => PopupMenuButton<CheckInVibeOption>(
-              icon: const Icon(Icons.mood),
-              tooltip: "Vibe",
-              initialValue: controller.vibeOption.value,
-              onSelected: controller.setVibe,
-              itemBuilder: (_) => const [
-                PopupMenuItem(
-                    value: CheckInVibeOption.all, child: Text("Tất cả")),
-                PopupMenuItem(
-                    value: CheckInVibeOption.thugian, child: Text("Thư giãn")),
-                PopupMenuItem(
-                    value: CheckInVibeOption.vuive, child: Text("Vui vẻ")),
-                PopupMenuItem(
-                    value: CheckInVibeOption.yeuduong, child: Text("Yêu")),
-                PopupMenuItem(
-                    value: CheckInVibeOption.bucxuc, child: Text("Bức xúc")),
-              ],
-            )),
+        Obx(() {
+          return PopupMenuButton<String?>(
+            icon: const Icon(Icons.mood),
+            tooltip: "Vibe",
+            initialValue: controller.selectedVibeId.value ?? 'all',
+            onSelected: controller.setVibe,
+            itemBuilder: (_) {
+              final items = <PopupMenuEntry<String?>>[
+                const PopupMenuItem(
+                  value: 'all',
+                  child: Text("Tất cả"),
+                ),
+              ];
+              items.addAll(controller.vibes.map((vibe) {
+                return PopupMenuItem(
+                  value: vibe.id,
+                  child: Text(vibe.name),
+                );
+              }).toList());
+              return items;
+            },
+          );
+        }),
       ],
     );
   }

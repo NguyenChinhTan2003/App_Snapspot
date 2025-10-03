@@ -1,5 +1,6 @@
 import 'package:app_snapspot/core/common_widgets/custom_expandable_text.dart';
 import 'package:app_snapspot/core/common_widgets/custom_images_view.dart';
+import 'package:app_snapspot/core/common_widgets/format_count.dart';
 import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:app_snapspot/presentations/profile/views/profile_public.dart';
@@ -246,6 +247,7 @@ class CheckInBottomSheet extends StatelessWidget {
               // Like / Dislike
               Row(
                 children: [
+                  const Spacer(),
                   Obx(() => IconButton(
                         icon: Icon(
                           Icons.thumb_up,
@@ -255,7 +257,10 @@ class CheckInBottomSheet extends StatelessWidget {
                         ),
                         onPressed: () => likeController.toggleReaction("like"),
                       )),
-                  Obx(() => Text("${likeController.likesCount.value}")),
+                  Obx(() => Text(
+                        formatCountAdvanced(likeController.likesCount.value),
+                        style: const TextStyle(fontSize: 13),
+                      )),
                   const SizedBox(width: 8),
                   Obx(() => IconButton(
                         icon: Icon(
@@ -267,7 +272,10 @@ class CheckInBottomSheet extends StatelessWidget {
                         onPressed: () =>
                             likeController.toggleReaction("dislike"),
                       )),
-                  Obx(() => Text("${likeController.dislikesCount.value}")),
+                  Obx(() => Text(
+                        formatCountAdvanced(likeController.dislikesCount.value),
+                        style: const TextStyle(fontSize: 13),
+                      )),
                 ],
               ),
 

@@ -1,4 +1,5 @@
 import 'package:app_snapspot/core/common_widgets/custom_expandable_text.dart';
+import 'package:app_snapspot/core/common_widgets/format_count.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:app_snapspot/presentations/checkin_history/views/update_checkin_bottomsheet.dart';
 import 'package:flutter/material.dart';
@@ -285,8 +286,8 @@ class CheckInHistoryView extends StatelessWidget {
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           )),
-                      Obx(() =>
-                          Text("${clickLikeController.likesCount.value}")),
+                      Obx(() => Text(formatCountAdvanced(
+                          clickLikeController.likesCount.value))),
                       const SizedBox(width: 12),
                       Obx(() => IconButton(
                             icon: Icon(
@@ -301,8 +302,8 @@ class CheckInHistoryView extends StatelessWidget {
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           )),
-                      Obx(() =>
-                          Text("${clickLikeController.dislikesCount.value}")),
+                      Obx(() => Text(formatCountAdvanced(
+                          clickLikeController.dislikesCount.value))),
                     ],
                   ),
                 ],

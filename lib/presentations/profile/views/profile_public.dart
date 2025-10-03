@@ -1,3 +1,4 @@
+import 'package:app_snapspot/core/common_widgets/format_count.dart';
 import 'package:app_snapspot/presentations/profile/controllers/profile_pub_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -418,7 +419,7 @@ class ProfilePublic extends StatelessWidget {
         ),
         SizedBox(height: width * 0.02),
         Text(
-          "$value",
+          formatCountAdvanced(value),
           style: TextStyle(
             fontSize: width * 0.06,
             fontWeight: FontWeight.bold,

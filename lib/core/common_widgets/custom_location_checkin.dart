@@ -1,5 +1,6 @@
 import 'package:app_snapspot/core/common_widgets/custom_detail_checkin.dart';
 import 'package:app_snapspot/core/common_widgets/custom_filter_bar.dart';
+import 'package:app_snapspot/core/common_widgets/format_count.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/locationCheckins_controller.dart';
 import 'package:app_snapspot/presentations/profile/views/profile_public.dart';
@@ -8,7 +9,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:app_snapspot/data/models/spot_model.dart';
 
-class LocationCheckInsBottomSheet extends StatelessWidget {
+class LocationCheckInsBottomSheet extends StatefulWidget {
   final SpotModel spot;
   final String? currentUserId;
 
@@ -18,61 +19,78 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
     this.currentUserId,
   });
 
-  void _showCheckInDetail(BuildContext context, checkin) {
+  @override
+  State<LocationCheckInsBottomSheet> createState() =>
+      _LocationCheckInsBottomSheetState();
+}
+
+class _LocationCheckInsBottomSheetState
+    extends State<LocationCheckInsBottomSheet> {
+  late final LocationCheckInsController controller;
+  late final ScrollController scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<LocationCheckInsController>(tag: widget.spot.id);
+    scrollController = ScrollController();
+    scrollController.addListener(() {
+      if (scrollController.position.pixels >=
+          scrollController.position.maxScrollExtent - 200) {
+        controller.loadNextPage();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
+  void _showCheckInDetail(checkin) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => CheckInBottomSheet(
-        checkin: checkin,
-      ),
+      builder: (_) => CheckInBottomSheet(checkin: checkin),
     );
   }
 
-  void _showProfile(BuildContext context, String uid) {
+  void _showProfile(String uid) {
+    final size = MediaQuery.of(context).size;
     showDialog(
       context: context,
-      builder: (_) {
-        final size = MediaQuery.of(context).size;
-        return Dialog(
-          insetPadding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: SizedBox(
-            height: size.height * 0.55,
-            width: size.width * 0.85,
-            child: ProfilePublic(uid: uid),
-          ),
-        );
-      },
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: SizedBox(
+          height: size.height * 0.55,
+          width: size.width * 0.85,
+          child: ProfilePublic(uid: uid),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<LocationCheckInsController>(tag: spot.id);
-
     return DraggableScrollableSheet(
       initialChildSize: 0.8,
       minChildSize: 0.4,
       maxChildSize: 0.9,
       expand: false,
-      builder: (context, scrollController) => Container(
+      builder: (_, scrollSheetController) => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black26,
-              blurRadius: 8,
-              offset: Offset(0, -2),
-            )
+                color: Colors.black26, blurRadius: 8, offset: Offset(0, -2))
           ],
         ),
         child: Column(
           children: [
-            // Handle
             Container(
               width: 50,
               height: 5,
@@ -82,27 +100,21 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-
-            // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                spot.name ?? "Danh sách Check-in",
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                widget.spot.name ?? "Danh sách Check-in",
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
             ),
-
             const SizedBox(height: 8),
-
-            // Filter bar
             CustomFilterBar(controller: controller),
             const Divider(height: 1),
-
-            // Content
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
@@ -111,7 +123,7 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                 if (controller.error.value != null) {
                   return Center(child: Text("Lỗi: ${controller.error.value}"));
                 }
-                if (controller.checkins.isEmpty) {
+                if (controller.displayedCheckins.isEmpty) {
                   return const Center(
                       child: Text("Chưa có check-in nào tại Spot này"));
                 }
@@ -121,16 +133,20 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                   child: ListView.separated(
                     controller: scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: controller.checkins.length,
+                    itemCount: controller.displayedCheckins.length + 1,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (_, index) {
-                      final enhanced = controller.checkins[index];
+                      if (index == controller.displayedCheckins.length) {
+                        return controller.isLoadingMore.value
+                            ? const Center(child: CircularProgressIndicator())
+                            : const SizedBox();
+                      }
+
+                      final enhanced = controller.displayedCheckins[index];
                       final checkin = enhanced.checkIn;
                       final profile = enhanced.profile;
                       final category = enhanced.category;
                       final vibe = enhanced.vibe;
-                      final formattedDate =
-                          DateFormat('dd/MM/yyyy').format(checkin.createdAt);
 
                       final clickLikeController = Get.put(
                         ClickLikeController(checkin),
@@ -140,24 +156,24 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
 
                       return Card(
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                            borderRadius: BorderRadius.circular(12)),
                         child: InkWell(
-                          onTap: () => _showCheckInDetail(context, checkin),
+                          onTap: () => _showCheckInDetail(checkin),
                           borderRadius: BorderRadius.circular(12),
                           child: Padding(
                             padding: const EdgeInsets.all(12),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Header row
+                                // Header
                                 Row(
                                   children: [
                                     GestureDetector(
                                       onTap: () {
                                         if (profile != null &&
-                                            currentUserId != profile.uid) {
-                                          _showProfile(context, profile.uid);
+                                            widget.currentUserId !=
+                                                profile.uid) {
+                                          _showProfile(profile.uid);
                                         }
                                       },
                                       child: CircleAvatar(
@@ -185,20 +201,18 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                                 child: GestureDetector(
                                                   onTap: () {
                                                     if (profile != null &&
-                                                        currentUserId !=
+                                                        widget.currentUserId !=
                                                             profile.uid) {
-                                                      _showProfile(
-                                                          context, profile.uid);
+                                                      _showProfile(profile.uid);
                                                     }
                                                   },
                                                   child: Text(
                                                     profile?.displayName ??
                                                         "Ẩn danh",
                                                     style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 16,
-                                                    ),
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16),
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,
@@ -207,11 +221,10 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                               ),
                                               const Spacer(),
                                               Text(
-                                                formattedDate,
+                                                "${checkin.createdAt.day}/${checkin.createdAt.month}/${checkin.createdAt.year}",
                                                 style: const TextStyle(
-                                                  color: Colors.black54,
-                                                  fontSize: 13,
-                                                ),
+                                                    color: Colors.black54,
+                                                    fontSize: 13),
                                               ),
                                             ],
                                           ),
@@ -220,8 +233,6 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-
-                                // Image
                                 if (checkin.images.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 12),
@@ -230,99 +241,67 @@ class LocationCheckInsBottomSheet extends StatelessWidget {
                                       child: AspectRatio(
                                         aspectRatio: 16 / 9,
                                         child: Image.network(
-                                          checkin.images.first,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                        ),
+                                            checkin.images.first,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover),
                                       ),
                                     ),
                                   ),
-
                                 const SizedBox(height: 12),
-                                // Title
-                                if (checkin.name.isNotEmpty)
-                                  Row(children: [
-                                    const Text("Tên địa điểm: ",
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold)),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      checkin.name,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.normal,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ]),
-
-                                const SizedBox(height: 8),
-
-                                // Chips + Like/Dislike
                                 Row(
                                   children: [
                                     if (category != null)
                                       Flexible(
                                         child: Chip(
-                                          label: Text(
-                                            category.name,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                                          label: Text(category.name,
+                                              overflow: TextOverflow.ellipsis),
                                           avatar: Image.network(
-                                            category.iconUrl,
-                                            width: 40,
-                                            height: 40,
-                                          ),
+                                              category.iconUrl,
+                                              width: 40,
+                                              height: 40),
                                         ),
                                       ),
                                     if (vibe != null) ...[
                                       const SizedBox(width: 6),
                                       Chip(
-                                        label: Text(
-                                          vibe.name,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        avatar: Text(
-                                          checkin.vibeIcon,
-                                          style: const TextStyle(fontSize: 13),
-                                        ),
+                                        label: Text(vibe.name,
+                                            overflow: TextOverflow.ellipsis),
+                                        avatar: Text(checkin.vibeIcon,
+                                            style:
+                                                const TextStyle(fontSize: 13)),
                                       ),
                                     ],
                                     const Spacer(),
                                     Obx(() {
                                       return Row(
                                         children: [
-                                          Icon(
-                                            Icons.thumb_up,
-                                            size: 18,
-                                            color: clickLikeController
-                                                    .isLiked.value
-                                                ? Colors.blue
-                                                : Colors.grey,
-                                          ),
+                                          Icon(Icons.thumb_up,
+                                              size: 18,
+                                              color: clickLikeController
+                                                      .isLiked.value
+                                                  ? Colors.blue
+                                                  : Colors.grey),
                                           const SizedBox(width: 4),
                                           Text(
-                                            "${clickLikeController.likesCount.value}",
-                                            style:
-                                                const TextStyle(fontSize: 13),
-                                          ),
+                                              formatCountAdvanced(
+                                                  clickLikeController
+                                                      .likesCount.value),
+                                              style: const TextStyle(
+                                                  fontSize: 13)),
                                           const SizedBox(width: 12),
-                                          Icon(
-                                            Icons.thumb_down,
-                                            size: 18,
-                                            color: clickLikeController
-                                                    .isDisliked.value
-                                                ? Colors.red
-                                                : Colors.grey,
-                                          ),
+                                          Icon(Icons.thumb_down,
+                                              size: 18,
+                                              color: clickLikeController
+                                                      .isDisliked.value
+                                                  ? Colors.red
+                                                  : Colors.grey),
                                           const SizedBox(width: 4),
                                           Text(
-                                            "${clickLikeController.dislikesCount.value}",
-                                            style:
-                                                const TextStyle(fontSize: 13),
-                                          ),
+                                              formatCountAdvanced(
+                                                  clickLikeController
+                                                      .dislikesCount.value),
+                                              style: const TextStyle(
+                                                  fontSize: 13)),
                                         ],
                                       );
                                     }),
