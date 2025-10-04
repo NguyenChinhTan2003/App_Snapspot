@@ -11,7 +11,7 @@ class SpotRepository {
     try {
       final data = spot.toJson();
       if (spot.name != null && spot.name!.isNotEmpty) {
-        data['keywords'] = _generateKeywords(spot.name!);
+        data['nameLower'] = spot.name!.toLowerCase().trim();
       }
       await _db.collection("spots").doc(spot.id).set(data);
     } catch (e) {
@@ -22,6 +22,7 @@ class SpotRepository {
   Future<void> updateSpotName(String spotId, String name) async {
     await _db.collection("spots").doc(spotId).update({
       "name": name,
+      "nameLower": name.toLowerCase().trim(),
     });
   }
 
@@ -122,13 +123,15 @@ class SpotRepository {
 
   // lấy Spot theo tên
   Future<List<SpotModel>> getSpotsByName(String name) async {
-    final query = await FirebaseFirestore.instance
+    final query = await _db
         .collection("spots")
-        .where("name", isEqualTo: name)
+        .where("nameLower", isEqualTo: name.toLowerCase().trim())
         .get();
 
     return query.docs.map((doc) {
-      return SpotModel.fromJson(doc.data()!..['id'] = doc.id);
+      final data = doc.data();
+      data['id'] = doc.id;
+      return SpotModel.fromJson(data);
     }).toList();
   }
 
@@ -140,8 +143,10 @@ class SpotRepository {
     String? category,
   }) async {
     // Query theo tên
-    final query =
-        await _db.collection("spots").where("name", isEqualTo: name).get();
+    final query = await _db
+        .collection("spots")
+        .where("nameLower", isEqualTo: name.toLowerCase().trim())
+        .get();
 
     final spots = query.docs.map((doc) {
       final data = doc.data();
@@ -205,7 +210,7 @@ class SpotRepository {
     String? category,
     String? searchQuery,
   }) async {
-    final snapshot = await FirebaseFirestore.instance
+    final snapshot = await _db
         .collection("spots")
         .where("latitude", isGreaterThanOrEqualTo: minLat)
         .where("latitude", isLessThanOrEqualTo: maxLat)
@@ -230,25 +235,5 @@ class SpotRepository {
     }).toList();
 
     return spots;
-  }
-
-  List<String> _generateKeywords(String name) {
-    final lower = name.toLowerCase().trim();
-    final words = lower.split(RegExp(r"\s+"));
-    final keywords = <String>[];
-
-    // mỗi từ
-    for (final word in words) {
-      for (int i = 1; i <= word.length; i++) {
-        keywords.add(word.substring(0, i));
-      }
-    }
-
-    // toàn bộ cụm từ
-    for (int i = 1; i <= lower.length; i++) {
-      keywords.add(lower.substring(0, i));
-    }
-
-    return keywords.toSet().toList();
   }
 }

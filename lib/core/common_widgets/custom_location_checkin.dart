@@ -3,6 +3,7 @@ import 'package:app_snapspot/core/common_widgets/custom_filter_bar.dart';
 import 'package:app_snapspot/core/common_widgets/format_count.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/locationCheckins_controller.dart';
+import 'package:app_snapspot/presentations/map/controllers/map_controller.dart';
 import 'package:app_snapspot/presentations/profile/views/profile_public.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -102,14 +103,30 @@ class _LocationCheckInsBottomSheetState
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                widget.spot.name ?? "Danh sách Check-in",
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.spot.name ?? "Danh sách Check-in",
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.directions, color: Colors.blue),
+                    tooltip: "Chỉ đường",
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      final mapController = Get.find<MapController>();
+                      mapController.drawRouteTo(
+                          widget.spot.latitude, widget.spot.longitude);
+                    },
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),

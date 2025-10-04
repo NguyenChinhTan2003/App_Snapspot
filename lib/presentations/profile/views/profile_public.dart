@@ -268,7 +268,7 @@ class ProfilePublic extends StatelessWidget {
                                     ),
                                     _buildStat(
                                         context,
-                                        "Dislikes",
+                                        "Unlikes",
                                         controller.totalDislikes.value,
                                         Colors.red,
                                         Icons.thumb_down),

@@ -117,6 +117,7 @@ class CheckInBottomSheet extends StatelessWidget {
                                     (isLoading ? "Đang tải..." : "Ẩn danh"),
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold, fontSize: 16),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const Spacer(),

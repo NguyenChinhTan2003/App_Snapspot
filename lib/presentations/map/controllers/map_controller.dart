@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:app_snapspot/applications/services/mapbox_service.dart';
 import 'package:app_snapspot/core/common_widgets/custom_location_checkin.dart';
 import 'package:app_snapspot/core/common_widgets/custom_marker_helper.dart';
 import 'package:app_snapspot/core/common_widgets/custom_point_annotation_click_listener.dart';
@@ -34,6 +35,9 @@ class MapController extends GetxController {
   final Map<String, PointAnnotation> _markerCacheById = {};
   final Map<String, String> _annotationIdToSpotId = {};
 
+  PolylineAnnotationManager? _polylineManager;
+  final List<PolylineAnnotation> _polylineAnnotations = [];
+
   var mapMode = MapMode.normal.obs;
   var isAddButtonVisible = true.obs;
   var isBottomSheetOpen = false.obs;
@@ -42,6 +46,10 @@ class MapController extends GetxController {
   var selectedCategory = Rxn<String>();
   var searchQuery = "".obs;
   var isLoading = false.obs;
+
+  /// Route
+  var routeDistance = 0.0.obs;
+  var hasActiveRoute = false.obs;
 
   @override
   void onInit() {
@@ -112,15 +120,15 @@ class MapController extends GetxController {
     }
   }
 
-  Future<void> goToCurrentLocation() async {
+  Future<geo.Position?> goToCurrentLocation() async {
     try {
       geo.LocationPermission permission =
           await geo.Geolocator.checkPermission();
       if (permission == geo.LocationPermission.denied) {
         permission = await geo.Geolocator.requestPermission();
-        if (permission == geo.LocationPermission.denied) return;
+        if (permission == geo.LocationPermission.denied) return null;
       }
-      if (permission == geo.LocationPermission.deniedForever) return;
+      if (permission == geo.LocationPermission.deniedForever) return null;
 
       geo.Position position = await geo.Geolocator.getCurrentPosition(
         desiredAccuracy: geo.LocationAccuracy.high,
@@ -136,8 +144,131 @@ class MapController extends GetxController {
       await mapboxMap?.setCamera(
         CameraOptions(center: point, zoom: 17.0),
       );
+
+      return position;
     } catch (e) {
       debugPrint("Error getting current location: $e");
+      return null;
+    }
+  }
+
+  Future<void> _clearRoute() async {
+    try {
+      if (_polylineManager != null) {
+        // Xóa tất cả annotations do polyline manager quản lý
+        await _polylineManager!.deleteAll();
+        _polylineAnnotations.clear();
+      }
+    } catch (e) {
+      debugPrint('Error clearing route: $e');
+    }
+  }
+
+  /// Vẽ route tới (lat, lng)
+  Future<void> drawRouteTo(double lat, double lng) async {
+    if (mapboxMap == null) {
+      debugPrint('Map not ready yet');
+      return;
+    }
+
+    try {
+      if (currentLocation.value == null) {
+        await goToCurrentLocation();
+      }
+
+      final cur = currentLocation.value;
+      if (cur == null) {
+        debugPrint('Không có currentLocation để làm origin');
+        return;
+      }
+
+      final originLat = cur.coordinates.lat.toDouble();
+      final originLng = cur.coordinates.lng.toDouble();
+
+      final route = await MapboxService.getRoute(
+        originLat: originLat,
+        originLng: originLng,
+        destLat: lat,
+        destLng: lng,
+        profile: "driving",
+      );
+
+      if (route == null) {
+        debugPrint('MapboxService trả về null route');
+        return;
+      }
+
+      final rawCoords = route['geometry']?['coordinates'];
+      if (rawCoords == null || rawCoords is! List || rawCoords.isEmpty) {
+        debugPrint('Route geometry không hợp lệ');
+        return;
+      }
+
+      final coordsList = <List<double>>[];
+      for (final c in rawCoords) {
+        if (c is List && c.length >= 2) {
+          final lngVal = (c[0] as num).toDouble();
+          final latVal = (c[1] as num).toDouble();
+          coordsList.add([lngVal, latVal]);
+        }
+      }
+      if (coordsList.isEmpty) {
+        debugPrint('Không có coordinates để vẽ');
+        return;
+      }
+
+      await _clearRoute();
+
+      _polylineManager =
+          await mapboxMap!.annotations.createPolylineAnnotationManager();
+
+      final positions = coordsList.map((c) => Position(c[0], c[1])).toList();
+
+      final lineOptions = PolylineAnnotationOptions(
+        geometry: LineString(coordinates: positions),
+        lineColor: const Color(0xFF007AFF).value,
+        lineWidth: 5.0,
+      );
+
+      final created = await _polylineManager!.create(lineOptions);
+      _polylineAnnotations.add(created);
+
+      final points = coordsList
+          .map((c) => Point(coordinates: Position(c[0], c[1])))
+          .toList();
+
+      final camera = await mapboxMap?.cameraForCoordinates(
+        points,
+        MbxEdgeInsets(top: 170, left: 20, bottom: 170, right: 20),
+        null,
+        null,
+      );
+      if (camera != null) {
+        await mapboxMap?.setCamera(camera);
+      }
+
+      final distance = (route['distance'] as num).toDouble();
+      routeDistance.value = distance;
+      hasActiveRoute.value = true;
+
+      final duration = route['duration'];
+
+      debugPrint('Route distance: $distance m, duration: $duration s');
+    } catch (e) {
+      debugPrint('Error in drawRouteTo: $e');
+    }
+  }
+
+  Future<void> clearRoute() async {
+    await _clearRoute();
+    routeDistance.value = 0.0;
+    hasActiveRoute.value = false;
+
+    if (currentLocation.value != null) {
+      await mapboxMap?.setCamera(CameraOptions(
+        center: currentLocation.value,
+        zoom: 17,
+      ));
     }
   }
 
@@ -204,7 +335,6 @@ class MapController extends GetxController {
 
   // Loading Spots by Bounding Box
   void onCameraChanged(CameraChangedEventData eventData) async {
-    // Chỉ load khi có filter hoặc search
     if (selectedCategory.value != null || searchQuery.value.isNotEmpty) {
       final cameraState = await mapboxMap?.getCameraState();
       if (cameraState == null) return;
