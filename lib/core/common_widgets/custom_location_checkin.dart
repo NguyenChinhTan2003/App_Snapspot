@@ -119,11 +119,20 @@ class _LocationCheckInsBottomSheetState
                   IconButton(
                     icon: const Icon(Icons.directions, color: Colors.blue),
                     tooltip: "Chỉ đường",
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.of(context).pop();
+
                       final mapController = Get.find<MapController>();
-                      mapController.drawRouteTo(
-                          widget.spot.latitude, widget.spot.longitude);
+
+                      // xoá các marker khác, chỉ giữ lại marker điểm đến
+                      await mapController
+                          .keepOnlyDestinationMarker(widget.spot);
+
+                      // vẽ tuyến đường
+                      await mapController.drawRouteTo(
+                        widget.spot.latitude,
+                        widget.spot.longitude,
+                      );
                     },
                   ),
                 ],

@@ -52,6 +52,7 @@ class MapController extends GetxController {
 
   // Map style
   var isSatelliteMode = true.obs;
+  var isNavigationMode = false.obs;
 
   @override
   void onInit() {
@@ -354,6 +355,7 @@ class MapController extends GetxController {
 
   // Loading Spots by Bounding Box
   void onCameraChanged(CameraChangedEventData eventData) async {
+    if (isNavigationMode.value) return;
     if (selectedCategory.value != null || searchQuery.value.isNotEmpty) {
       final cameraState = await mapboxMap?.getCameraState();
       if (cameraState == null) return;
@@ -368,6 +370,11 @@ class MapController extends GetxController {
   }
 
   Future<void> loadMarkersInView(CoordinateBounds bounds) async {
+    if (isNavigationMode.value) {
+      debugPrint("Đang ở chế độ chỉ đường — bỏ qua loadMarkersInView");
+      return;
+    }
+
     if (mapboxMap == null) return;
     isLoading.value = true;
 
@@ -409,6 +416,10 @@ class MapController extends GetxController {
   }
 
   Future<void> reloadSpotsInView() async {
+    if (isNavigationMode.value) {
+      debugPrint("Đang ở chế độ chỉ đường — bỏ qua reloadSpotsInView");
+      return;
+    }
     final cameraState = await mapboxMap?.getCameraState();
     if (cameraState == null) return;
 
@@ -451,7 +462,7 @@ class MapController extends GetxController {
     final allSpots = await spotRepo.getSpotsByName(name);
 
     if (allSpots.isEmpty) {
-      debugPrint("❌ Không tìm thấy spot nào tên: $name");
+      debugPrint(" Không tìm thấy spot nào tên: $name");
       return;
     }
 
@@ -515,6 +526,28 @@ class MapController extends GetxController {
     // Add marker cho tất cả spot hiển thị
     for (final spot in spotsToFocus) {
       await addSpotMarker(spot);
+    }
+  }
+
+  // Giữ lại marker đích, xóa hết marker khác
+  Future<void> keepOnlyDestinationMarker(SpotModel spot) async {
+    if (_annotationManager == null) return;
+
+    try {
+      // Bật chế độ chỉ đường → chặn auto reload markers
+      isNavigationMode.value = true;
+
+      final searchCtrl = Get.find<SearchFilterController>();
+      searchCtrl.updateSearchQuery("");
+
+      await _annotationManager!.deleteAll();
+      _markerCacheById.clear();
+      _annotationIdToSpotId.clear();
+
+      await addSpotMarker(spot);
+      debugPrint("Giữ lại marker đích: ${spot.name}");
+    } catch (e) {
+      debugPrint("Lỗi khi giữ lại marker đích: $e");
     }
   }
 

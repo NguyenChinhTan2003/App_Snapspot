@@ -1,13 +1,42 @@
-// widget
 import 'package:app_snapspot/presentations/map/controllers/search_filter_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-class CustomSearchFilterBar extends GetView<SearchFilterController> {
+class CustomSearchFilterBar extends StatefulWidget {
   final Function(String searchText, String categoryId) onSearch;
 
   const CustomSearchFilterBar({super.key, required this.onSearch});
+
+  @override
+  State<CustomSearchFilterBar> createState() => _CustomSearchFilterBarState();
+}
+
+class _CustomSearchFilterBarState extends State<CustomSearchFilterBar> {
+  late final TextEditingController _textController;
+  final controller = Get.find<SearchFilterController>();
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(text: controller.searchQuery.value);
+
+    // Lắng nghe thay đổi searchQuery từ controller để đồng bộ UI
+    ever(controller.searchQuery, (String? value) {
+      if (value != null && value != _textController.text) {
+        _textController.text = value;
+        _textController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _textController.text.length),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,9 +60,11 @@ class CustomSearchFilterBar extends GetView<SearchFilterController> {
               ],
             ),
             child: TextField(
+              controller: _textController,
               onChanged: (value) {
                 controller.updateSearchQuery(value);
-                onSearch(value, controller.selectedCategoryId.value ?? '');
+                widget.onSearch(
+                    value, controller.selectedCategoryId.value ?? '');
               },
               style: const TextStyle(
                 fontSize: 16,
@@ -65,7 +96,7 @@ class CustomSearchFilterBar extends GetView<SearchFilterController> {
 
           const SizedBox(height: 12),
 
-          //Category Chips
+          // Category Chips
           Obx(() {
             if (controller.isLoading.value) {
               return SizedBox(
@@ -109,7 +140,7 @@ class CustomSearchFilterBar extends GetView<SearchFilterController> {
                     return GestureDetector(
                       onTap: () {
                         controller.updateCategory(isSelected ? null : cat.id);
-                        onSearch(
+                        widget.onSearch(
                           controller.searchQuery.value,
                           controller.selectedCategoryId.value ?? '',
                         );
