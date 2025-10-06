@@ -6,10 +6,9 @@ import 'package:app_snapspot/core/common_widgets/custom_point_annotation_click_l
 import 'package:app_snapspot/data/models/spot_model.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
 import 'package:app_snapspot/domains/repositories/spot_repository.dart';
+import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/locationCheckins_controller.dart';
 import 'package:app_snapspot/presentations/map/controllers/search_filter_controller.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -50,6 +49,9 @@ class MapController extends GetxController {
   /// Route
   var routeDistance = 0.0.obs;
   var hasActiveRoute = false.obs;
+
+  // Map style
+  var isSatelliteMode = true.obs;
 
   @override
   void onInit() {
@@ -149,6 +151,23 @@ class MapController extends GetxController {
     } catch (e) {
       debugPrint("Error getting current location: $e");
       return null;
+    }
+  }
+
+  Future<void> toggleMapStyle() async {
+    if (mapboxMap == null) return;
+
+    try {
+      if (isSatelliteMode.value) {
+        await mapboxMap!.loadStyleURI("mapbox://styles/mapbox/streets-v12");
+      } else {
+        await mapboxMap!.loadStyleURI("mapbox://styles/mapbox/satellite-v9");
+      }
+
+      isSatelliteMode.toggle();
+      debugPrint("Map style switched. Satellite: ${isSatelliteMode.value}");
+    } catch (e) {
+      debugPrint("Error switching map style: $e");
     }
   }
 
@@ -432,7 +451,7 @@ class MapController extends GetxController {
     final allSpots = await spotRepo.getSpotsByName(name);
 
     if (allSpots.isEmpty) {
-      debugPrint("Không tìm thấy spot nào tên: $name");
+      debugPrint("❌ Không tìm thấy spot nào tên: $name");
       return;
     }
 
@@ -447,39 +466,53 @@ class MapController extends GetxController {
       return;
     }
 
-    // Tìm spot trong bán kính 10km tính từ spot đầu tiên
-    final baseSpot = allSpots.first;
-    final nearbySpots = allSpots.where((spot) {
-      final distanceInMeters = geo.Geolocator.distanceBetween(
-        baseSpot.latitude,
-        baseSpot.longitude,
-        spot.latitude,
-        spot.longitude,
-      );
-      return distanceInMeters <= 10000;
-    }).toList();
+    // Tìm nhóm spot gần nhau trong bán kính 20km
+    const double radiusMeters = 20000;
+    List<SpotModel> nearbyGroup = [];
 
-    // gom đủ trong 10km
-    final spotsToFocus =
-        (nearbySpots.length == allSpots.length) ? nearbySpots : allSpots;
+    for (final spot in allSpots) {
+      // Đếm xem spot này có ít nhất 1 spot khác trong bán kính 20km không
+      final closeSpots = allSpots.where((other) {
+        final distance = geo.Geolocator.distanceBetween(
+          spot.latitude,
+          spot.longitude,
+          other.latitude,
+          other.longitude,
+        );
+        return distance <= radiusMeters;
+      }).toList();
 
-    // Fit camera để thấy tất cả spot
+      if (closeSpots.length > 1) {
+        nearbyGroup = closeSpots;
+        break;
+      }
+    }
+
+    // Nếu tìm được nhóm gần nhau thì chỉ focus nhóm đó
+    final spotsToFocus = nearbyGroup.isNotEmpty ? nearbyGroup : allSpots;
+
+    // Fit camera để thấy tất cả spot cần focus
     final points = spotsToFocus
         .map((s) => Point(coordinates: Position(s.longitude, s.latitude)))
         .toList();
 
-    final camera = await mapboxMap?.cameraForCoordinates(
-      points,
-      MbxEdgeInsets(top: 170, left: 170, bottom: 170, right: 170),
-      null,
-      null,
-    );
-
-    if (camera != null) {
-      await mapboxMap?.setCamera(camera);
+    if (points.length == 1) {
+      await mapboxMap?.setCamera(
+        CameraOptions(center: points.first, zoom: 17.5),
+      );
+    } else {
+      final camera = await mapboxMap?.cameraForCoordinates(
+        points,
+        MbxEdgeInsets(top: 100, left: 100, bottom: 100, right: 100),
+        0.0,
+        0.0,
+      );
+      if (camera != null) {
+        await mapboxMap?.setCamera(camera);
+      }
     }
 
-    // Add marker cho tất cả
+    // Add marker cho tất cả spot hiển thị
     for (final spot in spotsToFocus) {
       await addSpotMarker(spot);
     }
@@ -491,18 +524,19 @@ class MapController extends GetxController {
     isBottomSheetOpen.value = true;
 
     try {
-      final spotDoc = await FirebaseFirestore.instance
-          .collection("spots")
-          .doc(spotId)
-          .get();
-      if (!spotDoc.exists) {
-        isBottomSheetOpen.value = false;
+      final spotRepo = SpotRepository();
+      final auth = Get.find<AuthController>();
+
+      final spot = await spotRepo.getSpotById(spotId);
+      if (spot == null) {
+        debugPrint("Spot không tồn tại hoặc đã bị xóa: $spotId");
         return;
       }
 
-      final spot = SpotModel.fromJson(spotDoc.data()!..['id'] = spotDoc.id);
-      final user = FirebaseAuth.instance.currentUser;
-      final currentUserId = user?.uid;
+      final currentUserId = auth.firebaseUser.value?.uid;
+      if (currentUserId == null) {
+        debugPrint("Chưa đăng nhập");
+      }
 
       await Get.bottomSheet(
         Builder(

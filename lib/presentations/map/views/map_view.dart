@@ -178,6 +178,20 @@ class MapPage extends GetView<MapController> {
                       mini: true,
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.green,
+                      heroTag: "toggleMapStyle",
+                      onPressed: controller.toggleMapStyle,
+                      child: Obx(() => Icon(
+                            controller.isSatelliteMode.value
+                                ? Icons.map
+                                : Icons.satellite_alt,
+                            size: 22,
+                          )),
+                    ),
+                    const SizedBox(height: 12),
+                    FloatingActionButton(
+                      mini: true,
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.green,
                       heroTag: "currentLocation",
                       onPressed: () {
                         controller.goToCurrentLocation();
