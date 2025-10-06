@@ -55,8 +55,9 @@ class CheckInHistoryController extends GetxController {
     try {
       isLoading.value = true;
       final checkinsData = await _repository.getUserCheckIns(userId!);
-      checkins.value = checkinsData;
-      filteredCheckins.assignAll(checkinsData);
+
+      checkins.assignAll(checkinsData);
+      _applyFilter();
 
       for (var c in checkinsData) {
         _fetchAddressForCheckin(c);
@@ -105,18 +106,18 @@ class CheckInHistoryController extends GetxController {
 
   Future<void> deleteCheckIn(String checkInId) async {
     try {
-      // Tìm checkin để lấy spotId
       final checkinToDelete = checkins.firstWhere((c) => c.id == checkInId);
+
+      checkins.removeWhere((c) => c.id == checkInId);
+      filteredCheckins.removeWhere((c) => c.id == checkInId);
+      checkins.refresh();
+      filteredCheckins.refresh();
 
       await _repository.deleteCheckIn(
         checkInId,
         userId!,
         checkinToDelete.spotId,
       );
-
-      checkins.removeWhere((c) => c.id == checkInId);
-
-      Get.snackbar("Thành công", "Đã xóa check-in");
     } catch (e) {
       Get.snackbar("Lỗi", "Không thể xóa check-in");
     }

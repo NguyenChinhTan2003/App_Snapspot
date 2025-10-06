@@ -22,18 +22,41 @@ class CheckInRepository {
     await _db.collection("checkins").doc(checkIn.id).set(data);
   }
 
+  Future<void> deleteCheckInFolder(String userId, String checkinId) async {
+    try {
+      final folderRef = _storage.ref().child('checkins/$userId/$checkinId');
+
+      final listResult = await folderRef.listAll();
+
+      for (final item in listResult.items) {
+        await item.delete();
+      }
+
+      for (final prefix in listResult.prefixes) {
+        final subList = await prefix.listAll();
+        for (final subItem in subList.items) {
+          await subItem.delete();
+        }
+      }
+
+      debugPrint("Đã xóa thư mục checkins/$userId/$checkinId trong Storage");
+    } catch (e) {
+      debugPrint("Lỗi khi xoá thư mục checkins/$userId/$checkinId: $e");
+    }
+  }
+
   Future<void> deleteCheckIn(
       String checkinId, String userId, String spotId) async {
     final checkinRef = _db.collection('checkins').doc(checkinId);
 
-    //Check quyền
     final snapshot = await checkinRef.get();
     if (!snapshot.exists) throw Exception("Checkin không tồn tại");
     if (snapshot['userId'] != userId) {
       throw Exception("Bạn không có quyền xoá checkin này");
     }
 
-    // Xoá reactions bằng batch
+    await deleteCheckInFolder(userId, checkinId);
+
     final reactionsRef = checkinRef.collection('reactions');
     final reactionsSnap = await reactionsRef.get();
     final batch = _db.batch();
@@ -43,7 +66,6 @@ class CheckInRepository {
     batch.delete(checkinRef);
     await batch.commit();
 
-    // Nếu spot không còn checkin nào -> xoá spot
     final checkinsSnap = await _db
         .collection('checkins')
         .where('spotId', isEqualTo: spotId)
