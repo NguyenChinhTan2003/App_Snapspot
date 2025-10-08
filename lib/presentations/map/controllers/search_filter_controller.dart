@@ -1,3 +1,4 @@
+import 'package:app_snapspot/presentations/map/controllers/map_controller.dart';
 import 'package:get/get.dart';
 import 'package:app_snapspot/data/models/category_model.dart';
 import 'package:app_snapspot/domains/repositories/category_repository.dart';
@@ -38,6 +39,10 @@ class SearchFilterController extends GetxController {
 
   void updateSearchQuery(String query) {
     searchQuery.value = query;
+    if (query.isEmpty) {
+      final mapController = Get.find<MapController>();
+      mapController.clearAllMarkers();
+    }
   }
 
   void updateCategory(String? categoryId) {

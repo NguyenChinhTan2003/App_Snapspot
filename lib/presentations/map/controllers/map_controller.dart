@@ -178,6 +178,7 @@ class MapController extends GetxController {
         // Xóa tất cả annotations do polyline manager quản lý
         await _polylineManager!.deleteAll();
         _polylineAnnotations.clear();
+        await clearAllMarkers();
       }
     } catch (e) {
       debugPrint('Error clearing route: $e');
