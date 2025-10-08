@@ -1,6 +1,7 @@
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/checkin_controller.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/checkin_detail_controller.dart';
+import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/locationCheckins_controller.dart';
 import 'package:app_snapspot/presentations/home/controllers/navigation_controller.dart';
 import 'package:get/get.dart';

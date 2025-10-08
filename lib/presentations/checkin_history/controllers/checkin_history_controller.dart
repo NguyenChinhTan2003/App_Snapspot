@@ -1,5 +1,6 @@
 import 'package:app_snapspot/applications/services/mapbox_service.dart';
 import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
+import 'package:diacritic/diacritic.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:app_snapspot/data/models/checkin_model.dart';
@@ -10,11 +11,13 @@ class CheckInHistoryController extends GetxController {
   late final CheckInModel checkin;
 
   var checkins = <CheckInModel>[].obs;
+  var filteredCheckins = <CheckInModel>[].obs;
   var isLoading = true.obs;
   var selectedCheckin = Rxn<CheckInModel>();
   var selectedAddress = "".obs;
   var isAddressLoading = false.obs;
   var addresses = <String, String>{}.obs;
+  var searchQuery = "".obs;
 
   AuthController get _authController => Get.find<AuthController>();
   String? get userId => _authController.firebaseUser.value?.uid;
@@ -29,6 +32,7 @@ class CheckInHistoryController extends GetxController {
         fetchCheckIns();
       } else {
         checkins.clear();
+        filteredCheckins.clear();
       }
     });
 
@@ -38,6 +42,7 @@ class CheckInHistoryController extends GetxController {
     } else {
       isLoading.value = false;
     }
+    ever(searchQuery, (_) => _applyFilter());
   }
 
   Future<void> refreshAfterUpdate() async {
@@ -50,9 +55,10 @@ class CheckInHistoryController extends GetxController {
     try {
       isLoading.value = true;
       final checkinsData = await _repository.getUserCheckIns(userId!);
-      checkins.value = checkinsData;
 
-      // Lấy địa chỉ cho từng checkin
+      checkins.assignAll(checkinsData);
+      _applyFilter();
+
       for (var c in checkinsData) {
         _fetchAddressForCheckin(c);
       }
@@ -61,6 +67,31 @@ class CheckInHistoryController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  String normalize(String input) {
+    return removeDiacritics(input).toLowerCase().trim();
+  }
+
+  void _applyFilter() {
+    final query = normalize(searchQuery.value);
+
+    if (query.isEmpty) {
+      filteredCheckins.assignAll(checkins);
+    } else {
+      filteredCheckins.assignAll(
+        checkins.where((c) {
+          final name = normalize(c.name ?? "");
+          final content = normalize(c.content ?? "");
+          return name.contains(query) || content.contains(query);
+        }).toList(),
+      );
+    }
+  }
+
+  void updateSearchQuery(String query) {
+    debugPrint("Search query: $query");
+    searchQuery.value = query.trim();
   }
 
   Future<void> _fetchAddressForCheckin(CheckInModel checkin) async {
@@ -75,18 +106,18 @@ class CheckInHistoryController extends GetxController {
 
   Future<void> deleteCheckIn(String checkInId) async {
     try {
-      // Tìm checkin để lấy spotId
       final checkinToDelete = checkins.firstWhere((c) => c.id == checkInId);
+
+      checkins.removeWhere((c) => c.id == checkInId);
+      filteredCheckins.removeWhere((c) => c.id == checkInId);
+      checkins.refresh();
+      filteredCheckins.refresh();
 
       await _repository.deleteCheckIn(
         checkInId,
         userId!,
         checkinToDelete.spotId,
       );
-
-      checkins.removeWhere((c) => c.id == checkInId);
-
-      Get.snackbar("Thành công", "Đã xóa check-in");
     } catch (e) {
       Get.snackbar("Lỗi", "Không thể xóa check-in");
     }

@@ -1,3 +1,4 @@
+import 'package:app_snapspot/core/common_widgets/format_count.dart';
 import 'package:app_snapspot/presentations/profile/controllers/profile_pub_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,7 +11,9 @@ class ProfilePublic extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ProfilePubController(uid));
+    final controller = Get.put(ProfilePubController(uid), tag: uid);
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
 
     return Material(
       type: MaterialType.transparency,
@@ -83,9 +86,9 @@ class ProfilePublic extends StatelessWidget {
             child: Stack(
               children: [
                 Container(
-                  width: MediaQuery.of(context).size.width * 0.88,
+                  width: width * 0.88,
                   constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.65,
+                    maxHeight: height * 0.85,
                   ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
@@ -102,19 +105,17 @@ class ProfilePublic extends StatelessWidget {
                         color: Colors.black.withOpacity(0.08),
                         blurRadius: 30,
                         offset: const Offset(0, 15),
-                        spreadRadius: 0,
                       ),
                       BoxShadow(
                         color: Colors.black.withOpacity(0.04),
                         blurRadius: 10,
                         offset: const Offset(0, 5),
-                        spreadRadius: 0,
                       ),
                     ],
                   ),
                   child: Stack(
                     children: [
-                      // Background decoration
+                      // Background decorations
                       Positioned(
                         top: -50,
                         right: -50,
@@ -150,206 +151,220 @@ class ProfilePublic extends StatelessWidget {
                         ),
                       ),
 
-                      // Main content
+                      // Scrollable main content
                       Padding(
-                        padding: const EdgeInsets.all(28),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 10),
+                        padding: const EdgeInsets.all(24),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 10),
 
-                            // Avatar with enhanced styling
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.pinkAccent.withOpacity(0.3),
-                                    Colors.purpleAccent.withOpacity(0.3),
-                                  ],
+                              // Avatar
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.pinkAccent.withOpacity(0.3),
+                                      Colors.purpleAccent.withOpacity(0.3),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              child: CircleAvatar(
-                                radius: 42,
-                                backgroundColor: Colors.white,
                                 child: CircleAvatar(
-                                  radius: 48,
-                                  backgroundImage: user.photoUrl != null
-                                      ? NetworkImage(user.photoUrl!)
-                                      : const AssetImage(
-                                              "assets/default_avatar.png")
-                                          as ImageProvider,
+                                  radius: width * 0.12,
+                                  backgroundColor: Colors.white,
+                                  child: CircleAvatar(
+                                    radius: width * 0.11,
+                                    backgroundImage: user.photoUrl != null
+                                        ? NetworkImage(user.photoUrl!)
+                                        : const AssetImage(
+                                                "assets/default_avatar.png")
+                                            as ImageProvider,
+                                  ),
                                 ),
                               ),
-                            ),
 
-                            const SizedBox(height: 15),
+                              const SizedBox(height: 15),
 
-                            // User info
-                            Text(
-                              user.displayName,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2D3142),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-
-                            const SizedBox(height: 6),
-
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[100],
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                "Tham gia từ ${DateFormat('dd/MM/yyyy • HH:mm').format(user.createdAt)}",
+                              // Name
+                              Text(
+                                user.displayName,
                                 style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: width * 0.06,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF2D3142),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+
+                              const SizedBox(height: 6),
+
+                              // Join date
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  "Tham gia từ ${DateFormat('dd/MM/yyyy • HH:mm').format(user.createdAt)}",
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: width * 0.035,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                            ),
 
-                            const SizedBox(height: 15),
+                              const SizedBox(height: 15),
 
-                            // Stats section with enhanced design
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 24,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.grey.withOpacity(0.1),
-                                  width: 1,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 2),
+                              // Stats
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.grey.withOpacity(0.1),
                                   ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  _buildStat(
-                                      "Check-ins",
-                                      controller.totalCheckIns.value,
-                                      Colors.green,
-                                      Icons.location_on),
-                                  Container(
-                                    width: 1,
-                                    height: 40,
-                                    color: Colors.grey.withOpacity(0.2),
-                                  ),
-                                  _buildStat(
-                                      "Likes",
-                                      controller.totalLikes.value,
-                                      Colors.blue,
-                                      Icons.thumb_up),
-                                  Container(
-                                    width: 1,
-                                    height: 40,
-                                    color: Colors.grey.withOpacity(0.2),
-                                  ),
-                                  _buildStat(
-                                      "Dislikes",
-                                      controller.totalDislikes.value,
-                                      Colors.red,
-                                      Icons.thumb_down),
-                                ],
-                              ),
-                            ),
-
-                            const SizedBox(height: 15),
-
-                            // Email section
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 16,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.grey.withOpacity(0.1),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.04),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 2),
                                     ),
-                                    child: const Icon(
-                                      Icons.mail_outline,
-                                      color: Colors.grey,
-                                      size: 18,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      user.email,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: Color(0xFF2D3142),
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            const Spacer(),
-
-                            // Enhanced button
-                            Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFFFF6B9D),
-                                    Color(0xFFFF8E9B),
                                   ],
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
                                 ),
-                                borderRadius: BorderRadius.circular(18),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.pinkAccent.withOpacity(0.3),
-                                    blurRadius: 15,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    _buildStat(
+                                        context,
+                                        "Check-ins",
+                                        controller.totalCheckIns.value,
+                                        Colors.green,
+                                        Icons.location_on),
+                                    Container(
+                                      width: 1,
+                                      height: 40,
+                                      color: Colors.grey.withOpacity(0.2),
+                                    ),
+                                    _buildStat(
+                                        context,
+                                        "Likes",
+                                        controller.totalLikes.value,
+                                        Colors.blue,
+                                        Icons.thumb_up),
+                                    Container(
+                                      width: 1,
+                                      height: 40,
+                                      color: Colors.grey.withOpacity(0.2),
+                                    ),
+                                    _buildStat(
+                                        context,
+                                        "Unlikes",
+                                        controller.totalDislikes.value,
+                                        Colors.red,
+                                        Icons.thumb_down),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+
+                              const SizedBox(height: 15),
+
+                              // Email
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[50],
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.grey.withOpacity(0.1),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[200],
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.mail_outline,
+                                        color: Colors.grey,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        user.email,
+                                        style: TextStyle(
+                                          fontSize: width * 0.035,
+                                          fontWeight: FontWeight.w500,
+                                          color: const Color(0xFF2D3142),
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // Button
+                              Container(
+                                width: double.infinity,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFFFF6B9D),
+                                      Color(0xFFFF8E9B),
+                                    ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(18),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.pinkAccent.withOpacity(0.3),
+                                      blurRadius: 15,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    "Kết bạn",
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16),
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 10),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                // Enhanced close button
+                // Close button
                 Positioned(
                   top: 20,
                   right: 20,
@@ -385,7 +400,9 @@ class ProfilePublic extends StatelessWidget {
     );
   }
 
-  Widget _buildStat(String label, int value, Color color, IconData icon) {
+  Widget _buildStat(BuildContext context, String label, int value, Color color,
+      IconData icon) {
+    final width = MediaQuery.of(context).size.width;
     return Column(
       children: [
         Container(
@@ -397,24 +414,24 @@ class ProfilePublic extends StatelessWidget {
           child: Icon(
             icon,
             color: color,
-            size: 20,
+            size: width * 0.05,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: width * 0.02),
         Text(
-          "$value",
+          formatCountAdvanced(value),
           style: TextStyle(
-            fontSize: 22,
+            fontSize: width * 0.06,
             fontWeight: FontWeight.bold,
             color: color,
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: width * 0.005),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF6B7280),
+          style: TextStyle(
+            fontSize: width * 0.033,
+            color: const Color(0xFF6B7280),
             fontWeight: FontWeight.w500,
           ),
         ),

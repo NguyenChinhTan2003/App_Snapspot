@@ -8,7 +8,7 @@ import 'package:app_snapspot/core/common_widgets/custom_bottom_nav.dart';
 import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
 
 class HomeView extends GetView<NavigationController> {
-  HomeView({super.key});
+  const HomeView({super.key});
 
   final List<Widget> pages = const [
     MapPage(),

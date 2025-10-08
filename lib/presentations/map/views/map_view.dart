@@ -48,10 +48,59 @@ class MapPage extends GetView<MapController> {
             ),
           ),
 
+          Obx(() {
+            if (controller.hasActiveRoute.value) {
+              final km =
+                  (controller.routeDistance.value / 1000).toStringAsFixed(1);
+
+              return Positioned(
+                bottom: 100,
+                left: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.directions, color: Colors.green),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Khoảng cách: $km km",
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: controller.clearRoute,
+                        icon: const Icon(Icons.close, color: Colors.red),
+                        label: const Text("Hủy",
+                            style: TextStyle(color: Colors.red)),
+                      )
+                    ],
+                  ),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+
           // Thanh search + filter categories
           Obx(() {
             if (controller.mapMode.value == MapMode.selecting) {
-              return const SizedBox.shrink(); // Ẩn khi selecting
+              return const SizedBox.shrink();
             }
             return Positioned(
               top: MediaQuery.of(context).padding.top + 8,
@@ -59,9 +108,22 @@ class MapPage extends GetView<MapController> {
               right: 0,
               child: CustomSearchFilterBar(
                 onSearch: (searchText, categoryId) {
-                  controller.updateSearchQuery(searchText);
                   controller.updateCategory(
-                      categoryId.isNotEmpty ? categoryId : null);
+                    categoryId.isNotEmpty ? categoryId : null,
+                  );
+
+                  if (searchText.isNotEmpty) {
+                    final loc = controller.currentLocation.value;
+                    if (loc != null) {
+                      controller.focusOnSpotsByName(
+                        searchText,
+                        currentLat: loc.coordinates.lat.toDouble(),
+                        currentLng: loc.coordinates.lng.toDouble(),
+                      );
+                    }
+                  } else {
+                    controller.updateSearchQuery(searchText);
+                  }
                 },
               ),
             );
@@ -116,6 +178,20 @@ class MapPage extends GetView<MapController> {
                       mini: true,
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.green,
+                      heroTag: "toggleMapStyle",
+                      onPressed: controller.toggleMapStyle,
+                      child: Obx(() => Icon(
+                            controller.isSatelliteMode.value
+                                ? Icons.map
+                                : Icons.satellite_alt,
+                            size: 22,
+                          )),
+                    ),
+                    const SizedBox(height: 12),
+                    FloatingActionButton(
+                      mini: true,
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.green,
                       heroTag: "currentLocation",
                       onPressed: () {
                         controller.goToCurrentLocation();
@@ -124,13 +200,15 @@ class MapPage extends GetView<MapController> {
                       child: const Icon(Icons.my_location),
                     ),
                     const SizedBox(height: 12),
-                    FloatingActionButton(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.green,
-                      heroTag: "addLocation",
-                      onPressed: controller.startLocationSelection,
-                      child: const Icon(Icons.add_location, size: 28),
-                    ),
+                    controller.hasActiveRoute.value
+                        ? const SizedBox(height: 56)
+                        : FloatingActionButton(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.green,
+                            heroTag: "addLocation",
+                            onPressed: controller.startLocationSelection,
+                            child: const Icon(Icons.add_location, size: 28),
+                          ),
                   ],
                 ),
               );

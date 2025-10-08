@@ -1,5 +1,6 @@
 import 'package:app_snapspot/core/common_widgets/custom_expandable_text.dart';
-import 'package:app_snapspot/domains/repositories/checkin_repository.dart';
+import 'package:app_snapspot/core/common_widgets/custom_images_view.dart';
+import 'package:app_snapspot/core/common_widgets/format_count.dart';
 import 'package:app_snapspot/presentations/auth/controllers/auth_controller.dart';
 import 'package:app_snapspot/presentations/checkin/controllers/click_like_controller.dart';
 import 'package:app_snapspot/presentations/profile/views/profile_public.dart';
@@ -11,52 +12,59 @@ import 'package:app_snapspot/presentations/checkin/controllers/checkin_detail_co
 
 class CheckInBottomSheet extends StatelessWidget {
   final CheckInModel checkin;
-  final String? currentUserId;
 
-  const CheckInBottomSheet(
-      {super.key, required this.checkin, this.currentUserId});
+  const CheckInBottomSheet({super.key, required this.checkin});
+
+  void _showProfile(BuildContext context, String uid) {
+    final size = MediaQuery.of(context).size;
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: SizedBox(
+          height: size.height * 0.55,
+          width: size.width * 0.85,
+          child: ProfilePublic(uid: uid),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final authController = Get.find<AuthController>();
     final controller = Get.put(
       CheckInDetailController(checkin.userId, checkin),
       tag: checkin.id,
     );
 
     final likeController = Get.put(
-      ClickLikeController(
-        checkin,
-        currentUserId: authController.firebaseUser.value?.uid,
-      ),
+      ClickLikeController(checkin),
       tag: "like-${checkin.id}",
     );
 
     final formattedDate =
-        DateFormat('dd/MM/yyyy • HH:mm').format(checkin.createdAt);
+        DateFormat('dd/MM/yyyy - HH:mm').format(checkin.createdAt);
 
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 8,
-            offset: Offset(0, -2),
-          )
+          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, -2))
         ],
       ),
       child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Obx(() {
           final user = controller.user.value;
           final isLoading = controller.isLoading.value;
+          final currentUserId = likeController.currentUserId.value;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Drag handle
+              // Handle
               Center(
                 child: Container(
                   width: 50,
@@ -69,36 +77,13 @@ class CheckInBottomSheet extends StatelessWidget {
                 ),
               ),
 
-              // Header: Người đăng + Thời gian
+              // Header: Avatar + Name + Time
               Row(
                 children: [
                   GestureDetector(
                     onTap: () {
-                      if (user != null) {
-                        final authController = Get.find<AuthController>();
-                        final currentUserId =
-                            authController.firebaseUser.value?.uid;
-                        if (currentUserId != null &&
-                            currentUserId == user.uid) {
-                          return;
-                        }
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return Dialog(
-                              insetPadding: const EdgeInsets.all(16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                              child: SizedBox(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.55,
-                                width: MediaQuery.of(context).size.width * 0.85,
-                                child: ProfilePublic(uid: user.uid),
-                              ),
-                            );
-                          },
-                        );
+                      if (user != null && currentUserId != user.uid) {
+                        _showProfile(context, user.uid);
                       }
                     },
                     child: CircleAvatar(
@@ -123,59 +108,23 @@ class CheckInBottomSheet extends StatelessWidget {
                           children: [
                             GestureDetector(
                               onTap: () {
-                                if (user != null) {
-                                  final authController =
-                                      Get.find<AuthController>();
-                                  final currentUserId =
-                                      authController.firebaseUser.value?.uid;
-                                  if (currentUserId != null &&
-                                      currentUserId == user.uid) {
-                                    return; // Không mở nếu là chính mình
-                                  }
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      return Dialog(
-                                        insetPadding: const EdgeInsets.all(16),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(28),
-                                        ),
-                                        child: SizedBox(
-                                          height: MediaQuery.of(context)
-                                                  .size
-                                                  .height *
-                                              0.55,
-                                          width: MediaQuery.of(context)
-                                                  .size
-                                                  .width *
-                                              0.85,
-                                          child: ProfilePublic(uid: user.uid),
-                                        ),
-                                      );
-                                    },
-                                  );
+                                if (user != null && currentUserId != user.uid) {
+                                  _showProfile(context, user.uid);
                                 }
                               },
                               child: Text(
                                 user?.displayName ??
                                     (isLoading ? "Đang tải..." : "Ẩn danh"),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(
-                                        fontWeight: FontWeight.normal,
-                                        color: Colors.black),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const Spacer(),
-                            Text(
-                              formattedDate,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(color: Colors.black87),
-                            ),
+                            Text(formattedDate,
+                                style: const TextStyle(
+                                    color: Colors.black87, fontSize: 14)),
                           ],
                         ),
                       ],
@@ -186,107 +135,72 @@ class CheckInBottomSheet extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // Ảnh chính
+              // Main Image
               if (checkin.images.isNotEmpty)
-                Hero(
-                  tag: "checkin-${checkin.id}",
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      checkin.images.first,
-                      width: double.infinity,
-                      height: 220,
-                      fit: BoxFit.cover,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CustomImagesView(
+                          imageUrls: checkin.images,
+                          initialIndex: 0,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Hero(
+                    tag: checkin.images.first,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        checkin.images.first,
+                        width: double.infinity,
+                        height: 220,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
 
               const SizedBox(height: 16),
 
-              // Category + Vibe + Like/Dislike
+              // Category + Vibe
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      if (checkin.categoryIcon.isNotEmpty)
-                        Chip(
-                          label: Text(checkin.categoryId),
-                          avatar: Image.network(
-                            checkin.categoryIcon,
-                            width: 20,
-                            height: 20,
-                          ),
-                        ),
-                      const SizedBox(width: 8),
-                      Chip(
-                        label: Text(checkin.vibeId),
-                        avatar: Text(
-                          checkin.vibeIcon,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ],
+                  if (checkin.categoryIcon.isNotEmpty)
+                    Chip(
+                      label: Text(checkin.categoryName),
+                      avatar: Image.network(checkin.categoryIcon,
+                          width: 20, height: 20),
+                    ),
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: Text(checkin.vibeName),
+                    avatar: Text(checkin.vibeIcon,
+                        style: const TextStyle(fontSize: 16)),
                   ),
-                  const Spacer(),
-
-                  // Like/Dislike buttons
-                  Obx(() {
-                    final likedColor =
-                        (likeController.hasLoadedUserReaction.value &&
-                                likeController.isLiked.value)
-                            ? Colors.blue
-                            : Colors.grey;
-                    final dislikedColor =
-                        (likeController.hasLoadedUserReaction.value &&
-                                likeController.isDisliked.value)
-                            ? Colors.red
-                            : Colors.grey;
-
-                    return Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.thumb_up,
-                            color: likedColor,
-                          ),
-                          onPressed: () =>
-                              likeController.toggleReaction("like"),
-                        ),
-                        Text("${likeController.likesCount.value}"),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: Icon(
-                            Icons.thumb_down,
-                            color: dislikedColor,
-                          ),
-                          onPressed: () =>
-                              likeController.toggleReaction("dislike"),
-                        ),
-                        Text("${likeController.dislikesCount.value}"),
-                      ],
-                    );
-                  }),
                 ],
               ),
 
               const SizedBox(height: 12),
 
-              // Tên địa điểm
+              // Place name
               Row(
                 children: [
-                  const Text("Tên địa điểm : ",
+                  const Text("Tên địa điểm: ",
                       style:
                           TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 20),
-                  Text(checkin.name,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.normal)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: Text(checkin.name,
+                          style: const TextStyle(fontSize: 14))),
                 ],
               ),
+
               const SizedBox(height: 10),
 
-              // Địa chỉ + Copy button
+              // Address + Copy
               Obx(() {
                 return Row(
                   children: [
@@ -295,21 +209,17 @@ class CheckInBottomSheet extends StatelessWidget {
                     Expanded(
                       child: Text(
                         controller.address.value,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: Colors.black54),
+                        style: const TextStyle(color: Colors.black54),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     IconButton(
                       icon: Icon(
-                        controller.copied.value ? Icons.check : Icons.copy,
-                        size: 18,
-                        color: controller.copied.value
-                            ? Colors.green
-                            : Colors.grey,
-                      ),
+                          controller.copied.value ? Icons.check : Icons.copy,
+                          color: controller.copied.value
+                              ? Colors.green
+                              : Colors.grey,
+                          size: 18),
                       onPressed: () {
                         controller.copyAddress();
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -323,35 +233,63 @@ class CheckInBottomSheet extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              // Nội dung
+              // Content
               if (checkin.content.isNotEmpty)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ExpandableText(
-                    text: checkin.content,
-                    trimLines: 2,
-                  ),
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12)),
+                  child: ExpandableText(text: checkin.content, trimLines: 2),
                 ),
+
+              const SizedBox(height: 12),
+
+              // Like / Dislike
+              Row(
+                children: [
+                  const Spacer(),
+                  Obx(() => IconButton(
+                        icon: Icon(
+                          Icons.thumb_up,
+                          color: likeController.isLiked.value
+                              ? Colors.blue
+                              : Colors.grey,
+                        ),
+                        onPressed: () => likeController.toggleReaction("like"),
+                      )),
+                  Obx(() => Text(
+                        formatCountAdvanced(likeController.likesCount.value),
+                        style: const TextStyle(fontSize: 13),
+                      )),
+                  const SizedBox(width: 8),
+                  Obx(() => IconButton(
+                        icon: Icon(
+                          Icons.thumb_down,
+                          color: likeController.isDisliked.value
+                              ? Colors.red
+                              : Colors.grey,
+                        ),
+                        onPressed: () =>
+                            likeController.toggleReaction("dislike"),
+                      )),
+                  Obx(() => Text(
+                        formatCountAdvanced(likeController.dislikesCount.value),
+                        style: const TextStyle(fontSize: 13),
+                      )),
+                ],
+              ),
 
               const SizedBox(height: 16),
 
-              // Ảnh phụ
+              // Additional images
               if (checkin.images.length > 1)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "Ảnh khác",
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
+                    const Text("Ảnh khác",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 100,
@@ -359,19 +297,39 @@ class CheckInBottomSheet extends StatelessWidget {
                         scrollDirection: Axis.horizontal,
                         itemCount: checkin.images.length - 1,
                         separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemBuilder: (_, index) => ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            checkin.images[index + 1],
-                            width: 120,
-                            height: 100,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+                        itemBuilder: (_, index) {
+                          final imgUrl = checkin.images[index + 1];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CustomImagesView(
+                                    imageUrls: checkin.images,
+                                    initialIndex: index + 1,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Hero(
+                              tag: imgUrl,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  imgUrl,
+                                  width: 120,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
+
               const SizedBox(height: 20),
             ],
           );

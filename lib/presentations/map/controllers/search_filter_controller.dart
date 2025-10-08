@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:app_snapspot/presentations/map/controllers/map_controller.dart';
 import 'package:get/get.dart';
 import 'package:app_snapspot/data/models/category_model.dart';
 import 'package:app_snapspot/domains/repositories/category_repository.dart';
@@ -8,9 +8,9 @@ class SearchFilterController extends GetxController {
 
   SearchFilterController(this.categoryRepo);
 
-  var searchText = ''.obs;
-  var selectedCategory = ''.obs;
   var categories = <CategoryModel>[].obs;
+  var selectedCategoryId = RxnString();
+  var searchQuery = "".obs;
   var isLoading = false.obs;
 
   @override
@@ -22,20 +22,30 @@ class SearchFilterController extends GetxController {
   Future<void> fetchCategories() async {
     try {
       isLoading.value = true;
-      final list = await categoryRepo.getCategories();
-      categories.assignAll(list);
-    } catch (e) {
-      debugPrint("❌ Error fetching categories: $e");
+      final result = await categoryRepo.getCategories();
+      categories.assignAll(result);
     } finally {
       isLoading.value = false;
     }
   }
 
-  void selectCategory(String categoryId) {
-    if (selectedCategory.value == categoryId) {
-      selectedCategory.value = '';
+  void toggleCategory(String categoryId) {
+    if (selectedCategoryId.value == categoryId) {
+      selectedCategoryId.value = null;
     } else {
-      selectedCategory.value = categoryId;
+      selectedCategoryId.value = categoryId;
     }
+  }
+
+  void updateSearchQuery(String query) {
+    searchQuery.value = query;
+    if (query.isEmpty) {
+      final mapController = Get.find<MapController>();
+      mapController.clearAllMarkers();
+    }
+  }
+
+  void updateCategory(String? categoryId) {
+    selectedCategoryId.value = categoryId;
   }
 }

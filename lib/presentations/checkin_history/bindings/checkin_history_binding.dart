@@ -1,12 +1,13 @@
-
-
-import 'package:app_snapspot/presentations/home/controllers/navigation_controller.dart';
+import 'package:app_snapspot/presentations/checkin_history/controllers/checkin_history_controller.dart';
 import 'package:get/get.dart';
 
 class CheckinHistoryBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<NavigationController>(() => NavigationController());
-
+    if (!Get.isRegistered<CheckInHistoryController>()) {
+      Get.lazyPut<CheckInHistoryController>(() => CheckInHistoryController());
+    } else {
+      Get.put(Get.find<CheckInHistoryController>(), permanent: true);
+    }
   }
 }

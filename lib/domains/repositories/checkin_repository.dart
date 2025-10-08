@@ -22,31 +22,50 @@ class CheckInRepository {
     await _db.collection("checkins").doc(checkIn.id).set(data);
   }
 
+  Future<void> deleteCheckInFolder(String userId, String checkinId) async {
+    try {
+      final folderRef = _storage.ref().child('checkins/$userId/$checkinId');
+
+      final listResult = await folderRef.listAll();
+
+      for (final item in listResult.items) {
+        await item.delete();
+      }
+
+      for (final prefix in listResult.prefixes) {
+        final subList = await prefix.listAll();
+        for (final subItem in subList.items) {
+          await subItem.delete();
+        }
+      }
+
+      debugPrint("Đã xóa thư mục checkins/$userId/$checkinId trong Storage");
+    } catch (e) {
+      debugPrint("Lỗi khi xoá thư mục checkins/$userId/$checkinId: $e");
+    }
+  }
+
   Future<void> deleteCheckIn(
       String checkinId, String userId, String spotId) async {
     final checkinRef = _db.collection('checkins').doc(checkinId);
 
-    // 1. Lấy dữ liệu checkin để check quyền
     final snapshot = await checkinRef.get();
-    if (!snapshot.exists) {
-      throw Exception("Checkin không tồn tại");
-    }
-    final data = snapshot.data()!;
-    if (data['userId'] != userId) {
+    if (!snapshot.exists) throw Exception("Checkin không tồn tại");
+    if (snapshot['userId'] != userId) {
       throw Exception("Bạn không có quyền xoá checkin này");
     }
 
-    // 2. Xoá reactions trước
+    await deleteCheckInFolder(userId, checkinId);
+
     final reactionsRef = checkinRef.collection('reactions');
     final reactionsSnap = await reactionsRef.get();
+    final batch = _db.batch();
     for (final doc in reactionsSnap.docs) {
-      await doc.reference.delete();
+      batch.delete(doc.reference);
     }
+    batch.delete(checkinRef);
+    await batch.commit();
 
-    // 3. Xoá checkin
-    await checkinRef.delete();
-
-    // 4. Kiểm tra xem spot còn checkin nào không
     final checkinsSnap = await _db
         .collection('checkins')
         .where('spotId', isEqualTo: spotId)
@@ -54,22 +73,7 @@ class CheckInRepository {
         .get();
 
     if (checkinsSnap.docs.isEmpty) {
-      // Không còn checkin nào => xoá spot
       await SpotRepository().deleteSpot(spotId);
-    }
-  }
-
-// Hàm xoá sub-collection theo batch
-  Future<void> _deleteCollection(CollectionReference collectionRef,
-      {int batchSize = 500}) async {
-    QuerySnapshot snapshot = await collectionRef.limit(batchSize).get();
-    while (snapshot.docs.isNotEmpty) {
-      WriteBatch batch = _db.batch();
-      for (var doc in snapshot.docs) {
-        batch.delete(doc.reference);
-      }
-      await batch.commit();
-      snapshot = await collectionRef.limit(batchSize).get();
     }
   }
 
@@ -361,11 +365,9 @@ class CheckInRepository {
   }
 
   /// Lắng nghe realtime cho checkin
-  Stream<CheckInModel> streamCheckIn(String checkinId) {
+  Stream<CheckInModel?> streamCheckIn(String checkinId) {
     return _db.collection("checkins").doc(checkinId).snapshots().map((doc) {
-      if (!doc.exists) {
-        throw Exception("Checkin not found");
-      }
+      if (!doc.exists) return null; // ✅ Không ném lỗi
       final data = doc.data()!..["id"] = doc.id;
       return CheckInModel.fromJson(data);
     });

@@ -85,6 +85,7 @@ class UpdateCheckinController extends GetxController {
         "content": contentController.text,
         "vibeId": selectedVibe.value!.id,
         "vibeIcon": selectedVibe.value!.icon,
+        "vibeName": selectedVibe.value!.name,
       };
 
       // ảnh mới thì upload trước

@@ -173,8 +173,10 @@ class CheckinController extends GetxController {
         content: contentController.text,
         categoryId: selectedCategory.value!.id,
         categoryIcon: selectedCategory.value!.iconUrl,
+        categoryName: selectedCategory.value!.name,
         vibeId: selectedVibe.value!.id,
         vibeIcon: selectedVibe.value!.icon,
+        vibeName: selectedVibe.value!.name,
         latitude: latitude,
         longitude: longitude,
         images: [],
@@ -189,7 +191,7 @@ class CheckinController extends GetxController {
         ...checkIn.toJson(),
         "spotId": spot.id,
       };
-      Get.back(result: result);
+      Get.back(result: spot);
 
       // Upload ảnh song song
       if (images.isNotEmpty) {
