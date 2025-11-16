@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>1054104127433-plfavk5p95hpl1ass5jkr9bqhhmafeoh.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.1054104127433-plfavk5p95hpl1ass5jkr9bqhhmafeoh</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>1054104127433-nvd05pfl8g77guvid88ge7tnhiqe7m46.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyAOlg-66RhygJE52XfbmmpGdkkGu7ohrL0</string>
+	<key>GCM_SENDER_ID</key>
+	<string>1054104127433</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.appSnapspot</string>
+	<key>PROJECT_ID</key>
+	<string>snapspot-c9ace</string>
+	<key>STORAGE_BUCKET</key>
+	<string>snapspot-c9ace.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:1054104127433:ios:a3630f9d2a680fb881ca18</string>
+	<key>DATABASE_URL</key>
+	<string>https://snapspot-c9ace-default-rtdb.asia-southeast1.firebasedatabase.app</string>
+</dict>
+</plist>
