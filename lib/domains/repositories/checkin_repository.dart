@@ -4,14 +4,24 @@ import 'package:app_snapspot/data/models/enhanced_checkin_model.dart';
 import 'package:app_snapspot/data/models/user_profile_model.dart';
 import 'package:app_snapspot/data/models/vibe_model.dart';
 import 'package:app_snapspot/domains/repositories/spot_repository.dart';
+import 'package:app_snapspot/presentations/checkin/controllers/locationCheckins_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:app_snapspot/data/models/checkin_model.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CheckInRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  // final FirebaseStorage _storage = FirebaseStorage.instance;
+  final SupabaseClient _supabase = Supabase.instance.client;
+
+  DocumentSnapshot? lastDoc;
+
+  // Cache read profile/category/vibe
+  final Map<String, ProfileModel?> _profileCache = {};
+  final Map<String, CategoryModel?> _categoryCache = {};
+  final Map<String, VibeModel?> _vibeCache = {};
 
   /// Tạo checkin mới
   Future<void> createCheckIn(CheckInModel checkIn, String spotId) async {
@@ -22,26 +32,17 @@ class CheckInRepository {
     await _db.collection("checkins").doc(checkIn.id).set(data);
   }
 
-  Future<void> deleteCheckInFolder(String userId, String checkinId) async {
-    try {
-      final folderRef = _storage.ref().child('checkins/$userId/$checkinId');
+  Future<void> deleteCheckInFolder(String userId, String checkInId) async {
+    final folderPath = 'checkins/$userId/$checkInId';
+    final list =
+        await _supabase.storage.from('checkins').list(path: folderPath);
 
-      final listResult = await folderRef.listAll();
-
-      for (final item in listResult.items) {
-        await item.delete();
+    for (final item in list) {
+      if (item.name != null) {
+        await _supabase.storage
+            .from('checkins')
+            .remove(['$folderPath/${item.name}']);
       }
-
-      for (final prefix in listResult.prefixes) {
-        final subList = await prefix.listAll();
-        for (final subItem in subList.items) {
-          await subItem.delete();
-        }
-      }
-
-      debugPrint("Đã xóa thư mục checkins/$userId/$checkinId trong Storage");
-    } catch (e) {
-      debugPrint("Lỗi khi xoá thư mục checkins/$userId/$checkinId: $e");
     }
   }
 
@@ -80,13 +81,8 @@ class CheckInRepository {
   /// Cập nhật checkin
   Future<void> updateCheckIn(
       String checkInId, Map<String, dynamic> updates) async {
-    try {
-      updates["updatedAt"] = FieldValue.serverTimestamp();
-
-      await _db.collection("checkins").doc(checkInId).update(updates);
-    } catch (e) {
-      rethrow;
-    }
+    updates["updatedAt"] = FieldValue.serverTimestamp();
+    await _db.collection("checkins").doc(checkInId).update(updates);
   }
 
   Future<String?> getUserReaction(String checkinId, String userId) async {
@@ -109,94 +105,90 @@ class CheckInRepository {
     final checkinRef = _db.collection('checkins').doc(checkinId);
     final reactionRef = checkinRef.collection('reactions').doc(userId);
 
-    return _db.runTransaction((transaction) async {
-      final checkinSnap = await transaction.get(checkinRef);
-      final reactionSnap = await transaction.get(reactionRef);
+    return _db.runTransaction((txn) async {
+      final snap = await txn.get(checkinRef);
+      final react = await txn.get(reactionRef);
 
-      int likesCount = checkinSnap['likesCount'] ?? 0;
-      int dislikesCount = checkinSnap['dislikesCount'] ?? 0;
+      int likes = (snap.data()?["likesCount"] ?? 0) as int;
+      int dislikes = (snap.data()?["dislikesCount"] ?? 0) as int;
 
-      String? currentType;
-      if (reactionSnap.exists) {
-        currentType = reactionSnap['type'] as String?;
-      }
+      String? current = react.exists ? react["type"] as String : null;
 
-      //Nếu user bấm lại cùng loại → xóa reaction
-      if (currentType == type) {
-        transaction.delete(reactionRef);
+      // CASE 1: nhấn lại -> xoá reaction
+      if (current == type) {
+        txn.delete(reactionRef);
+        if (type == "like") likes--;
+        if (type == "dislike") dislikes--;
 
-        if (type == 'like') likesCount--;
-        if (type == 'dislike') dislikesCount--;
-
-        transaction.update(checkinRef, {
-          'likesCount': likesCount,
-          'dislikesCount': dislikesCount,
+        txn.update(checkinRef, {
+          "likesCount": likes,
+          "dislikesCount": dislikes,
         });
 
         return {
-          'likesCount': likesCount,
-          'dislikesCount': dislikesCount,
-          'isLiked': false,
-          'isDisliked': false,
+          "likesCount": likes,
+          "dislikesCount": dislikes,
+          "isLiked": false,
+          "isDisliked": false,
         };
       }
 
-      // Nếu user chuyển từ like → dislike hoặc ngược lại
-      if (currentType != null && currentType != type) {
-        if (currentType == 'like') likesCount--;
-        if (currentType == 'dislike') dislikesCount--;
+      // CASE 2: chuyển like <=> dislike
+      if (current != null && current != type) {
+        if (current == "like") likes--;
+        if (current == "dislike") dislikes--;
 
-        if (type == 'like') likesCount++;
-        if (type == 'dislike') dislikesCount++;
+        if (type == "like") likes++;
+        if (type == "dislike") dislikes++;
 
-        transaction.set(reactionRef, {
-          'type': type,
-          'userId': userId,
-          'createdAt': FieldValue.serverTimestamp(),
+        txn.set(reactionRef, {
+          "type": type,
+          "userId": userId,
+          "createdAt": FieldValue.serverTimestamp(),
         });
 
-        transaction.update(checkinRef, {
-          'likesCount': likesCount,
-          'dislikesCount': dislikesCount,
+        txn.update(checkinRef, {
+          "likesCount": likes,
+          "dislikesCount": dislikes,
         });
 
         return {
-          'likesCount': likesCount,
-          'dislikesCount': dislikesCount,
-          'isLiked': type == 'like',
-          'isDisliked': type == 'dislike',
+          "likesCount": likes,
+          "dislikesCount": dislikes,
+          "isLiked": type == "like",
+          "isDisliked": type == "dislike",
         };
       }
 
-      // Nếu user chưa reaction → tạo mới
-      if (currentType == null) {
-        if (type == 'like') likesCount++;
-        if (type == 'dislike') dislikesCount++;
+      // CASE 3: chưa từng like/dislike
+      if (current == null) {
+        if (type == "like") likes++;
+        if (type == "dislike") dislikes++;
 
-        transaction.set(reactionRef, {
-          'type': type,
-          'userId': userId,
-          'createdAt': FieldValue.serverTimestamp(),
+        txn.set(reactionRef, {
+          "type": type,
+          "userId": userId,
+          "createdAt": FieldValue.serverTimestamp(),
         });
 
-        transaction.update(checkinRef, {
-          'likesCount': likesCount,
-          'dislikesCount': dislikesCount,
+        txn.update(checkinRef, {
+          "likesCount": likes,
+          "dislikesCount": dislikes,
         });
 
         return {
-          'likesCount': likesCount,
-          'dislikesCount': dislikesCount,
-          'isLiked': type == 'like',
-          'isDisliked': type == 'dislike',
+          "likesCount": likes,
+          "dislikesCount": dislikes,
+          "isLiked": type == "like",
+          "isDisliked": type == "dislike",
         };
       }
 
       return {
-        'likesCount': likesCount,
-        'dislikesCount': dislikesCount,
-        'isLiked': currentType == 'like',
-        'isDisliked': currentType == 'dislike',
+        "likesCount": likes,
+        "dislikesCount": dislikes,
+        "isLiked": current == "like",
+        "isDisliked": current == "dislike",
       };
     });
   }
@@ -262,61 +254,160 @@ class CheckInRepository {
     }).toList();
   }
 
-  Future<List<EnhancedCheckInModel>> getCheckInsBySpot(String spotId) async {
-    final snapshot = await _db
+  /// Lấy checkins theo Spot, phân trang
+  Future<List<EnhancedCheckInModel>> getCheckInsBySpotPaginated({
+    required String spotId,
+    int limit = 3,
+    DocumentSnapshot? startAfterDoc,
+  }) async {
+    Query query = _db
         .collection("checkins")
         .where("spotId", isEqualTo: spotId)
-        .get();
+        .orderBy("createdAt", descending: true)
+        .limit(limit);
 
-    final checkins =
-        snapshot.docs.map((doc) => CheckInModel.fromJson(doc.data())).toList();
+    if (startAfterDoc != null) {
+      query = query.startAfterDocument(startAfterDoc);
+    }
 
-    checkins.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final snapshot = await query.get();
 
-    final List<EnhancedCheckInModel> enhancedList = [];
+    if (snapshot.docs.isEmpty) return [];
 
-    for (final checkin in checkins) {
-      final profileDoc =
-          await _db.collection('profiles').doc(checkin.userId).get();
-      final categoryDoc =
-          await _db.collection('categories').doc(checkin.categoryId).get();
-      final vibeDoc = await _db.collection('vibe').doc(checkin.vibeId).get();
+    lastDoc = snapshot.docs.last;
 
-      enhancedList.add(EnhancedCheckInModel(
-        checkIn: checkin,
-        profile: profileDoc.exists
-            ? ProfileModel.fromJson(profileDoc.data()!)
-            : null,
-        category: categoryDoc.exists
-            ? CategoryModel.fromJson(categoryDoc.data()!)
-            : null,
-        vibe: vibeDoc.exists ? VibeModel.fromJson(vibeDoc.data()!) : null,
+    final checkins = snapshot.docs.map((doc) {
+      return CheckInModel.fromJson({
+        "id": doc.id,
+        ...?doc.data() as Map<String, dynamic>?,
+      });
+    }).toList();
+
+    return await _enhanceCheckIns(checkins);
+  }
+
+  /// Check-in với profile/category/vibe, dùng cache
+  Future<List<EnhancedCheckInModel>> _enhanceCheckIns(
+      List<CheckInModel> list) async {
+    final List<EnhancedCheckInModel> result = [];
+
+    for (final c in list) {
+      // Profile
+      if (!_profileCache.containsKey(c.userId)) {
+        final doc = await _db.collection("profiles").doc(c.userId).get();
+        _profileCache[c.userId] =
+            doc.exists ? ProfileModel.fromJson(doc.data()!) : null;
+      }
+
+      // Category
+      if (!_categoryCache.containsKey(c.categoryId)) {
+        final doc = await _db.collection("categories").doc(c.categoryId).get();
+        _categoryCache[c.categoryId] =
+            doc.exists ? CategoryModel.fromJson(doc.data()!) : null;
+      }
+
+      // Vibe
+      if (!_vibeCache.containsKey(c.vibeId)) {
+        final doc = await _db.collection("vibe").doc(c.vibeId).get();
+        _vibeCache[c.vibeId] =
+            doc.exists ? VibeModel.fromJson(doc.data()!) : null;
+      }
+
+      result.add(EnhancedCheckInModel(
+        checkIn: c,
+        profile: _profileCache[c.userId],
+        category: _categoryCache[c.categoryId],
+        vibe: _vibeCache[c.vibeId],
       ));
     }
 
-    return enhancedList;
+    return result;
   }
 
-  /// Upload 1 ảnh checkin
+  Future<List<EnhancedCheckInModel>> getCheckInsFiltered({
+    required String spotId,
+    required int pageSize,
+    required CheckInSortOption sortOption,
+    String? vibeId,
+    DateTime? minDate,
+  }) async {
+    Query query = _db.collection("checkins").where("spotId", isEqualTo: spotId);
+
+    // Filter vibe
+    if (vibeId != null && vibeId.isNotEmpty) {
+      query = query.where("vibeId", isEqualTo: vibeId);
+    }
+
+    // Filter date
+    if (minDate != null) {
+      query = query.where("createdAt", isGreaterThanOrEqualTo: minDate);
+    }
+
+    // Sort
+    switch (sortOption) {
+      case CheckInSortOption.newest:
+        query = query.orderBy("createdAt", descending: true);
+        break;
+      case CheckInSortOption.oldest:
+        query = query.orderBy("createdAt", descending: false);
+        break;
+      case CheckInSortOption.mostLiked:
+        query = query.orderBy("likesCount", descending: true);
+        break;
+      case CheckInSortOption.mostDisliked:
+        query = query.orderBy("dislikesCount", descending: true);
+        break;
+    }
+
+    // Pagination
+    if (lastDoc != null) {
+      query = query.startAfterDocument(lastDoc!);
+    }
+
+    query = query.limit(pageSize);
+
+    final snapshot = await query.get();
+
+    if (snapshot.docs.isEmpty) return [];
+
+    lastDoc = snapshot.docs.last;
+
+    final checkins = snapshot.docs.map((doc) {
+      return CheckInModel.fromJson({
+        "id": doc.id,
+        ...?doc.data() as Map<String, dynamic>?,
+      });
+    }).toList();
+
+    return await _enhanceCheckIns(checkins);
+  }
+
+  /// Upload 1 ảnh checkin lên Supabase Storage
   Future<String> uploadImage(
     String userId,
     String checkInId,
     String fileName,
     Uint8List fileBytes,
   ) async {
-    final ref = _storage.ref().child("checkins/$userId/$checkInId/$fileName");
+    final path = 'checkins/$userId/$checkInId/$fileName';
 
-    final uploadTask = await ref.putData(fileBytes);
-    return await uploadTask.ref.getDownloadURL();
+    // Ghi đè nếu file đã tồn tại
+    await _supabase.storage.from('checkins').uploadBinary(
+          path,
+          fileBytes,
+          fileOptions: const FileOptions(upsert: true),
+        );
+
+    // Lấy URL công khai
+    final url = _supabase.storage.from('checkins').getPublicUrl(path);
+    return url;
   }
 
-  /// Cập nhật danh sách ảnh cho checkin
-  Future<void> updateCheckInImages(
-    String checkInId,
-    List<String> urls,
-  ) async {
-    await _db.collection("checkins").doc(checkInId).update({
-      "images": urls,
+  /// Cập nhật danh sách ảnh cho checkin trong Firestore
+  Future<void> updateCheckInImages(String checkInId, List<String> urls) async {
+    await _db.collection('checkins').doc(checkInId).update({
+      'images': urls,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
@@ -367,7 +458,7 @@ class CheckInRepository {
   /// Lắng nghe realtime cho checkin
   Stream<CheckInModel?> streamCheckIn(String checkinId) {
     return _db.collection("checkins").doc(checkinId).snapshots().map((doc) {
-      if (!doc.exists) return null; // ✅ Không ném lỗi
+      if (!doc.exists) return null;
       final data = doc.data()!..["id"] = doc.id;
       return CheckInModel.fromJson(data);
     });
