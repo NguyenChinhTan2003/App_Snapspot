@@ -2,10 +2,12 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:app_snapspot/data/models/user_profile_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileRepository {
   final _firestore = FirebaseFirestore.instance;
-  final _storage = FirebaseStorage.instance;
+  // final _storage = FirebaseStorage.instance;
+  final _supabase = Supabase.instance.client;
 
   Future<ProfileModel?> getProfile(String uid) async {
     final doc = await _firestore.collection('profiles').doc(uid).get();
@@ -63,8 +65,16 @@ class ProfileRepository {
   }
 
   Future<String?> uploadAvatar(String uid, File file) async {
-    final ref = _storage.ref().child('profiles/$uid/avatar.jpg');
-    await ref.putFile(file);
-    return await ref.getDownloadURL();
+    final fileBytes = await file.readAsBytes();
+    final path =
+        'avatars/$uid/avatar-${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    await _supabase.storage.from('profiles').uploadBinary(
+          path,
+          fileBytes,
+          fileOptions: const FileOptions(upsert: true),
+        );
+
+    return _supabase.storage.from('profiles').getPublicUrl(path);
   }
 }

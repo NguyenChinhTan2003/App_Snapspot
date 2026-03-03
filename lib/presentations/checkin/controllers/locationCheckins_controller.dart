@@ -14,29 +14,43 @@ class LocationCheckInsController extends GetxController {
   final String spotId;
   final String? currentUserId;
 
-  LocationCheckInsController(this.repo, this.spotId, this.currentUserId);
+  LocationCheckInsController(
+    this.repo,
+    this.spotId,
+    this.currentUserId,
+  );
+
+  /// UI states
+  var displayedCheckins = <EnhancedCheckInModel>[].obs;
+  var vibes = <VibeModel>[].obs;
 
   var isLoading = false.obs;
   var isLoadingMore = false.obs;
+  var hasMore = true.obs;
   var error = RxnString();
 
-  var allCheckins = <EnhancedCheckInModel>[]; // cache tất cả check-in
-  var displayedCheckins = <EnhancedCheckInModel>[].obs; // check-in hiển thị
-
-  var vibes = <VibeModel>[].obs;
+  /// Filters
   var selectedVibeId = RxnString();
+  CheckInSortOption sortOption = CheckInSortOption.newest;
+  CheckInTimeOption timeOption = CheckInTimeOption.all;
 
-  var sortOption = CheckInSortOption.newest.obs;
-  var timeOption = CheckInTimeOption.all.obs;
-
-  int page = 0;
   final int pageSize = 10;
 
   @override
   void onInit() {
     super.onInit();
-    fetchVibes();
-    fetchCheckIns();
+    _initLoad();
+  }
+
+  Future<void> _initLoad() async {
+    isLoading(true);
+
+    await Future.wait([
+      fetchVibes(),
+      fetchCheckIns(),
+    ]);
+
+    isLoading(false);
   }
 
   Future<void> fetchVibes() async {
@@ -48,112 +62,74 @@ class LocationCheckInsController extends GetxController {
     }
   }
 
-  /// Fetch tất cả check-in từ repo
   Future<void> fetchCheckIns() async {
-    try {
-      isLoading.value = true;
-      error.value = null;
+    isLoading(true);
+    error.value = null;
 
-      final data = await repo.getCheckInsBySpot(spotId);
-      allCheckins = data;
-      page = 0;
+    try {
       displayedCheckins.clear();
-      loadNextPage();
+      hasMore(true);
+      repo.lastDoc = null; // reset pagination
+
+      await loadNextPage();
     } catch (e) {
       error.value = e.toString();
     } finally {
-      isLoading.value = false;
+      isLoading(false);
     }
   }
 
-  /// Load trang tiếp theo
-  void loadNextPage() {
-    if (isLoadingMore.value) return;
+  Future<void> loadNextPage() async {
+    if (!hasMore.value || isLoadingMore.value) return;
 
-    isLoadingMore.value = true;
+    isLoadingMore(true);
 
-    final filtered = _applyFilters(allCheckins);
-
-    final start = page * pageSize;
-    if (start >= filtered.length) {
-      isLoadingMore.value = false;
-      return; // hết dữ liệu
-    }
-
-    final end = (start + pageSize).clamp(0, filtered.length);
-    displayedCheckins.addAll(filtered.sublist(start, end));
-    page++;
-    isLoadingMore.value = false;
-  }
-
-  /// Apply filter nhưng chưa slice paging
-  List<EnhancedCheckInModel> _applyFilters(List<EnhancedCheckInModel> list) {
-    final now = DateTime.now();
-    var filtered = List<EnhancedCheckInModel>.from(list);
-
-    // filter time
-    filtered = filtered.where((c) {
-      final createdAt = c.checkIn.createdAt;
-      switch (timeOption.value) {
+    try {
+      DateTime? minDate;
+      switch (timeOption) {
         case CheckInTimeOption.last7Days:
-          return createdAt.isAfter(now.subtract(const Duration(days: 7)));
+          minDate = DateTime.now().subtract(const Duration(days: 7));
+          break;
         case CheckInTimeOption.last30Days:
-          return createdAt.isAfter(now.subtract(const Duration(days: 30)));
+          minDate = DateTime.now().subtract(const Duration(days: 30));
+          break;
         default:
-          return true;
+          minDate = null;
       }
-    }).toList();
 
-    // filter vibe
-    filtered = filtered.where((c) {
-      if (selectedVibeId.value == null) return true;
-      final vibeId = c.vibe?.id;
-      if (vibeId == null || vibeId.isEmpty) return false;
-      return vibeId == selectedVibeId.value;
-    }).toList();
+      final newItems = await repo.getCheckInsFiltered(
+        spotId: spotId,
+        pageSize: pageSize,
+        sortOption: sortOption,
+        vibeId: selectedVibeId.value,
+        minDate: minDate,
+      );
 
-    // sort
-    switch (sortOption.value) {
-      case CheckInSortOption.newest:
-        filtered
-            .sort((a, b) => b.checkIn.createdAt.compareTo(a.checkIn.createdAt));
-        break;
-      case CheckInSortOption.oldest:
-        filtered
-            .sort((a, b) => a.checkIn.createdAt.compareTo(b.checkIn.createdAt));
-        break;
-      case CheckInSortOption.mostLiked:
-        filtered.sort(
-            (a, b) => b.checkIn.likesCount.compareTo(a.checkIn.likesCount));
-        break;
-      case CheckInSortOption.mostDisliked:
-        filtered.sort((a, b) =>
-            b.checkIn.dislikesCount.compareTo(a.checkIn.dislikesCount));
-        break;
+      if (newItems.isEmpty) {
+        hasMore(false);
+      } else {
+        displayedCheckins.addAll(newItems);
+        if (newItems.length < pageSize) hasMore(false);
+      }
+    } catch (e) {
+      error.value = e.toString();
+    } finally {
+      isLoadingMore(false);
     }
-
-    return filtered;
   }
 
-  // Khi filter mới
-  void applyFilters() {
-    page = 0;
-    displayedCheckins.clear();
-    loadNextPage();
+  void changeSort(CheckInSortOption option) {
+    sortOption = option;
+    fetchCheckIns();
   }
 
-  void setSort(CheckInSortOption opt) {
-    sortOption.value = opt;
-    applyFilters();
+  void changeTimeFilter(CheckInTimeOption option) {
+    timeOption = option;
+    fetchCheckIns();
   }
 
-  void setTime(CheckInTimeOption opt) {
-    timeOption.value = opt;
-    applyFilters();
-  }
-
-  void setVibe(String? vibeId) {
-    selectedVibeId.value = (vibeId == 'all') ? null : vibeId;
-    applyFilters();
+  void selectVibe(String? id) {
+    selectedVibeId.value = id;
+    fetchCheckIns();
   }
 }
