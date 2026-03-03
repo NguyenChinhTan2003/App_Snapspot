@@ -4,13 +4,20 @@ part of 'app_pages.dart';
 
 abstract class Routes {
   Routes._();
+  static const HOME = _Paths.HOME;
   static const MAP = _Paths.MAP;
-  
+  static const CHECKIN = _Paths.CHECKIN;
+  static const PROFILE = _Paths.PROFILE;
+  static const LOGIN = _Paths.LOGIN;
+  static const CHECKIN_HISTORY = _Paths.CHECKIN_HISTORY;
 }
 
 abstract class _Paths {
   _Paths._();
+  static const LOGIN = '/login';
+  static const HOME = '/home';
   static const MAP = '/map';
- 
-
+  static const CHECKIN = '/checkin';
+  static const PROFILE = '/profile';
+  static const CHECKIN_HISTORY = '/checkin-history';
 }

@@ -1,16 +1,29 @@
 import 'dart:async';
 import 'package:app_snapspot/applications/services/global_binding.dart';
+import 'package:app_snapspot/applications/services/mapbox_service.dart';
 import 'package:app_snapspot/core/common_widgets/reset_app_widget.dart';
+import 'package:app_snapspot/firebase_options.dart';
 import 'package:app_snapspot/routes/app_pages.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:get/get_navigation/src/routes/transitions_type.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'flavors.dart';
 
-
 FutureOr<void> main() async {
   GlobalBinding().dependencies();
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await Supabase.initialize(
+    url: "https://tlllvsjvopiuyadnzqpg.supabase.co",
+    anonKey:
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsbGx2c2p2b3BpdXlhZG56cXBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjA3NjgsImV4cCI6MjA3OTg5Njc2OH0.G7zv2k176WL-Ka7dfhLVYKFpqj90ERshsRhe0mNlHJg",
+  );
+  await MapboxService.initialize();
   runApp(
     ResetAppWidget(
       child: GetMaterialApp(
@@ -19,9 +32,7 @@ FutureOr<void> main() async {
         initialRoute: AppPages.INITIAL,
         getPages: AppPages.routes,
         defaultTransition: Transition.rightToLeft,
-        
       ),
-      
     ),
   );
 }
